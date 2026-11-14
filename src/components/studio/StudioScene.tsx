@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState, type Dispatch } from 'react';
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber';
-import { Environment, Lightformer, OrbitControls } from '@react-three/drei';
+import { Canvas, type ThreeEvent } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import { MOUSE, TOUCH, Vector3 } from 'three';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BASEPLATE_SIZE, getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
@@ -11,6 +11,8 @@ import { activeSelection, type StudioAction, type StudioState } from '@/lib/stud
 import { newInstanceId } from '@/lib/studio/share';
 import { playBlocked, playRemove, playSnap } from '@/lib/studio/sound';
 import { brickMaterial, ghostMaterial } from '@/lib/studio/three';
+import CameraRig from '@/components/three/CameraRig';
+import SceneLighting from '@/components/three/SceneLighting';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
 
@@ -52,29 +54,7 @@ export default function StudioScene(props: SceneProps) {
       camera={{ position: [size * 0.8, size * 0.85, size * 0.8], fov: 40, near: 0.1, far: 1000 }}
       gl={{ antialias: true, preserveDrawingBuffer: false }}
     >
-      <color attach="background" args={['#eef2f7']} />
-      <ambientLight intensity={0.25} />
-      <hemisphereLight args={['#ffffff', '#cbd5e1', 0.45]} />
-      <directionalLight
-        position={[-size * 0.45, size * 0.6, size * 0.2]}
-        intensity={2.4}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.02}
-        shadow-camera-left={-size * 0.75}
-        shadow-camera-right={size * 0.75}
-        shadow-camera-top={size * 0.75}
-        shadow-camera-bottom={-size * 0.75}
-        shadow-camera-far={size * 3}
-      />
-      {/* Local studio environment for reflections — no network fetch. */}
-      <Environment resolution={128}>
-        <Lightformer intensity={1.4} position={[0, 6, -8]} scale={[14, 6, 1]} />
-        <Lightformer intensity={0.8} position={[-8, 4, 4]} rotation-y={Math.PI / 2} scale={[10, 4, 1]} />
-        <Lightformer intensity={0.6} position={[8, 3, 4]} rotation-y={-Math.PI / 2} scale={[10, 3, 1]} />
-        <Lightformer intensity={0.6} position={[0, -4, 0]} rotation-x={Math.PI / 2} scale={[20, 20, 1]} color="#e2e8f0" />
-      </Environment>
+      <SceneLighting size={size} />
 
       <group position={[-size / 2, 0, -size / 2]}>
         <Workspace {...props} />
@@ -93,23 +73,6 @@ export default function StudioScene(props: SceneProps) {
       <CameraRig size={size} nonce={props.viewNonce} />
     </Canvas>
   );
-}
-
-function CameraRig({ size, nonce }: { size: number; nonce: number }) {
-  const camera = useThree((s) => s.camera);
-  const controls = useThree((s) => s.controls) as unknown as { target: Vector3; update: () => void } | null;
-
-  useEffect(() => {
-    camera.position.set(size * 0.8, size * 0.85, size * 0.8);
-    if (controls) {
-      controls.target.set(0, 0, 0);
-      controls.update();
-    } else {
-      camera.lookAt(0, 0, 0);
-    }
-  }, [camera, controls, size, nonce]);
-
-  return null;
 }
 
 const UP = new Vector3(0, 1, 0);

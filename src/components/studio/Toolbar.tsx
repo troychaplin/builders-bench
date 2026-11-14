@@ -2,6 +2,7 @@
 
 import { useRef, type Dispatch, type ReactNode } from 'react';
 import {
+  BookOpen,
   Download,
   Eraser,
   Focus,
@@ -69,6 +70,7 @@ interface ToolbarProps {
   onDownload: () => void;
   onLoadFile: (file: File) => void;
   onResetView: () => void;
+  onPlayAsKit: () => void;
 }
 
 export default function Toolbar({
@@ -80,6 +82,7 @@ export default function Toolbar({
   onDownload,
   onLoadFile,
   onResetView,
+  onPlayAsKit,
 }: ToolbarProps) {
   const { tool, rotation, past, future, project } = state;
   const plate = getBaseplateColor(project.baseplateColor);
@@ -185,6 +188,11 @@ export default function Toolbar({
           e.target.value = '';
         }}
       />
+
+      <IconButton label="Play as Guided Kit" disabled={!project.bricks.length} onClick={onPlayAsKit}>
+        <BookOpen className="h-4 w-4" />
+        <span className="hidden xl:inline">Play as Kit</span>
+      </IconButton>
 
       <button
         type="button"

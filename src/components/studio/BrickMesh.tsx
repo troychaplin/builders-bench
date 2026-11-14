@@ -17,13 +17,14 @@ interface BrickMeshProps {
   instanceId?: string;
   /** Outline colour for hover feedback (erase/paint). */
   highlight?: string | null;
-  /** Ghost previews ignore pointer rays and skip shadows. */
+  /** Ghost previews skip shadows and, unless interactive, ignore pointer rays. */
   ghost?: boolean;
+  interactive?: boolean;
 }
 
 const noRaycast = () => null;
 
-function BrickMesh({ part, pose, material, instanceId, highlight, ghost }: BrickMeshProps) {
+function BrickMesh({ part, pose, material, instanceId, highlight, ghost, interactive }: BrickMeshProps) {
   const geo = getPartGeometry(part);
   const { w, d } = rotatedSize(part, pose.rotation);
   const userData = instanceId ? { instanceId } : undefined;
@@ -31,7 +32,7 @@ function BrickMesh({ part, pose, material, instanceId, highlight, ghost }: Brick
     userData,
     castShadow: !ghost,
     receiveShadow: !ghost,
-    raycast: ghost ? noRaycast : undefined,
+    raycast: ghost && !interactive ? noRaycast : undefined,
     dispose: null,
   };
 

@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileUp, Keyboard, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BIN_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
-import { CARTRIDGE_EXT, downloadCartridge, readCartridge, readHashProject, shareUrl } from '@/lib/studio/share';
+import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartridge, readHashProject, shareUrl } from '@/lib/studio/share';
 import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
 import BinsHud from './BinsHud';
 import PartsDrawer from './PartsDrawer';
@@ -36,6 +37,7 @@ function boot() {
 }
 
 export default function StudioApp() {
+  const router = useRouter();
   const [initial] = useState(boot);
   const [state, dispatch] = useReducer(studioReducer, initial, createInitialState);
   const [notice, setNotice] = useState<string | null>(initial.notice);
@@ -183,6 +185,10 @@ export default function StudioApp() {
             onDownload={() => downloadCartridge(project)}
             onLoadFile={loadFile}
             onResetView={() => setViewNonce((n) => n + 1)}
+            onPlayAsKit={() => {
+              saveAutosave(project);
+              router.push(`/kits/play${HASH_PREFIX}${encodeProject(project)}`);
+            }}
           />
         </div>
       </div>
