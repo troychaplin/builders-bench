@@ -1,26 +1,109 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Drafting paper & ink */
+  --paper: #f8fafc;
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --ink-faint: #94a3b8;
+  --grid-minor: rgba(148, 163, 184, 0.16);
+  --grid-major: rgba(148, 163, 184, 0.32);
+
+  /* Blueprint accents */
+  --cobalt: #2563eb;
+  --cyan: #06b6d4;
+
+  /* Brick accents — use sparingly */
+  --signal-red: #ef4444;
+  --builder-yellow: #f59e0b;
+  --emerald: #10b981;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-cobalt: var(--cobalt);
+  --color-cyan: var(--cyan);
+  --color-signal-red: var(--signal-red);
+  --color-builder-yellow: var(--builder-yellow);
+  --color-emerald: var(--emerald);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-space-grotesk);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--paper);
 }
 
+/*
+ * Architectural graph paper: 20px minor grid, 100px major grid, and a soft
+ * radial vignette so the sheet reads as framed rather than infinite.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse at 50% 35%, transparent 55%, rgba(15, 23, 42, 0.05) 100%),
+    linear-gradient(to right, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(to right, var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-minor) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+}
+
+/* Small dot-grid used as a stud accent in card corners. */
+.stud-dots {
+  background-image: radial-gradient(circle, currentColor 1.6px, transparent 2px);
+  background-size: 10px 10px;
+}
+
+/* Registration crosshairs drawn at the four corners of a positioned box. */
+.reg-marks {
+  position: relative;
+}
+.reg-marks > .reg {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.reg-marks > .reg::before,
+.reg-marks > .reg::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+}
+.reg-marks > .reg::before {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+.reg-marks > .reg::after {
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 100%;
+}
+.reg-marks > .reg-tl { top: -7px; left: -7px; }
+.reg-marks > .reg-tr { top: -7px; right: -7px; }
+.reg-marks > .reg-bl { bottom: -7px; left: -7px; }
+.reg-marks > .reg-br { bottom: -7px; right: -7px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,69 +1,96 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import BlueprintPreview from '@/components/BlueprintPreview';
+import ModeCard from '@/components/ModeCard';
+import { BRICK_COLORS, BRICK_PARTS } from '@/data/brickCatalog';
+import { APP_MODES } from '@/data/modes';
+
+const SHEET_META = ['SHEET A-01', 'SCALE 1:1', 'STUD GRID 24×24', 'REV 1.0'];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
+      {/* Sheet header metadata */}
+      <div className="mb-10 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[10px] tracking-[0.18em] text-ink-soft">
+        <span className="text-cobalt">+</span>
+        {SHEET_META.map((m, i) => (
+          <span key={m} className="flex items-center gap-6">
+            {m}
+            {i < SHEET_META.length - 1 && <span className="h-3 w-px bg-ink/20" aria-hidden="true" />}
+          </span>
+        ))}
+      </div>
+
+      {/* Hero */}
+      <section className="grid items-center gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
+        <div className="reg-marks border border-ink/15 bg-white/70 p-7 backdrop-blur-[2px] sm:p-10">
+          <span className="reg reg-tl" /><span className="reg reg-tr" />
+          <span className="reg reg-bl" /><span className="reg reg-br" />
+
+          <p className="flex items-center gap-2 font-mono text-[10px] font-semibold tracking-[0.2em] text-cobalt">
+            <span className="h-1.5 w-1.5 bg-signal-red" aria-hidden="true" />
+            MASTER BUILDER BLUEPRINT
           </p>
+
+          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.02] tracking-[-0.03em] sm:text-6xl">
+            Design, Snap
+            <br />& Engineer
+            <br />
+            <span className="text-cobalt">in 3D.</span>
+          </h1>
+
+          <p className="mt-6 max-w-md text-base leading-relaxed text-ink-soft">
+            A precision workbench for brick builders. Lay out models on a true stud grid, follow
+            guided kits, prototype figures, and explore the set archive.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Link
+              href="/studio"
+              className="group inline-flex items-center gap-2.5 bg-ink px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-cobalt focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt"
+            >
+              Launch 3D Workbench
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link href="/kits" className="text-sm font-medium text-ink-soft underline-offset-4 hover:text-ink hover:underline">
+              Browse guided kits
+            </Link>
+          </div>
+
+          <dl className="mt-10 grid grid-cols-3 border-t border-ink/15 pt-5">
+            {[
+              { label: 'PARTS', value: BRICK_PARTS.length },
+              { label: 'COLORS', value: BRICK_COLORS.length },
+              { label: 'MODULES', value: APP_MODES.length },
+            ].map((s, i) => (
+              <div key={s.label} className={i > 0 ? 'border-l border-ink/15 pl-4' : ''}>
+                <dt className="font-mono text-[10px] tracking-[0.18em] text-ink-soft">{s.label}</dt>
+                <dd className="mt-1 font-display text-2xl font-bold tabular-nums">{s.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <BlueprintPreview />
+      </section>
+
+      {/* Modules */}
+      <section className="mt-24">
+        <div className="mb-8 flex items-end justify-between gap-4 border-b border-ink/15 pb-4">
+          <div>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-cobalt">SECTION 02</p>
+            <h2 className="mt-2 font-display text-3xl font-bold tracking-tight">Studio Modules</h2>
+          </div>
+          <span className="hidden font-mono text-[10px] tracking-[0.18em] text-ink-soft sm:block">
+            {APP_MODES.length} MODULES · 1 ACTIVE
+          </span>
         </div>
-      </main>
+        <div className="grid gap-px border border-ink/15 bg-ink/15 sm:grid-cols-2">
+          {APP_MODES.map((mode) => (
+            <ModeCard key={mode.href} mode={mode} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
