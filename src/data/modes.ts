@@ -34,7 +34,7 @@ export const APP_MODES: AppMode[] = [
     title: 'Guided Kits',
     tagline: 'Step-by-step builds',
     description: 'Follow numbered instruction steps with parts call-outs, just like a printed manual.',
-    status: 'upcoming',
+    status: 'active',
     phase: 2,
   },
   {

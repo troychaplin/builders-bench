@@ -82,7 +82,7 @@ export default function Home() {
             <h2 className="mt-2 font-display text-3xl font-bold tracking-tight">Studio Modules</h2>
           </div>
           <span className="hidden font-mono text-[10px] tracking-[0.18em] text-ink-soft sm:block">
-            {APP_MODES.length} MODULES · 1 ACTIVE
+            {APP_MODES.length} MODULES · {APP_MODES.filter((m) => m.status === 'active').length} ACTIVE
           </span>
         </div>
         <div className="grid gap-px border border-ink/15 bg-ink/15 sm:grid-cols-2">
