@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import ModePlaceholder from '@/components/ModePlaceholder';
-import { getMode } from '@/data/modes';
+import StudioClient from '@/components/studio/StudioClient';
 
-const mode = getMode('/studio');
-
-export const metadata: Metadata = { title: mode.title };
+export const metadata: Metadata = {
+  title: 'BuildBin Studio',
+  description: 'Free-build with bricks in 3D and share your model with a link.',
+};
 
 export default function StudioPage() {
-  return <ModePlaceholder mode={mode} />;
+  return <StudioClient />;
 }

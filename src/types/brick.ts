@@ -46,6 +46,8 @@ export interface BuildProject {
   createdAt: string;
   baseplateSize: number;
   bricks: PlacedBrick[];
+  /** Studio baseplate color id (optional; defaults to Forest Green). */
+  baseplateColor?: string;
 }
 
 export interface BlockFigure {
