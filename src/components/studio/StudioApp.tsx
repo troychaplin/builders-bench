@@ -16,6 +16,7 @@ import Flyout, { type StudioPanel } from './Flyout';
 import type { ViewMode, ViewPan, ViewTilt, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo, type TouchPending } from './StudioScene';
 import Toolbar from './Toolbar';
+import { DIVIDER_V, SURFACE, controlBtn } from './controls';
 import ToolRail from './ToolRail';
 
 const SHORTCUTS: [string, string][] = [
@@ -250,70 +251,79 @@ export default function StudioApp() {
 
       {/* Bottom HUD: status, view controls, shortcuts, touch confirm */}
       <div className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] flex flex-col items-center gap-2 md:bottom-3 md:left-[4.5rem]">
-        <div className="flex w-full flex-wrap items-end justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-ink/15 bg-white/90 px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft backdrop-blur">
+        {/* One status + view bar: what you're building, where, and how you're looking at it. */}
+        <div role="toolbar" aria-label="Status and view" className={`pointer-events-auto relative flex max-w-full items-center gap-0.5 p-1 ${SURFACE}`}>
+          <div className="flex h-9 shrink-0 items-center gap-2 px-2.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft" aria-live="off">
             <span>
-              BRICKS <span className="text-ink">{project.bricks.length}</span>
+              <span className="max-sm:hidden">BRICKS </span>
+              <span className="text-ink">{project.bricks.length}</span>
+              <span className="sm:hidden"> PCS</span>
               {project.figures?.length ? (
-                <>
+                <span className="max-md:hidden">
                   {' '}· FIGURES <span className="text-ink">{project.figures.length}</span>
-                </>
+                </span>
               ) : null}
             </span>
-            <span className="hidden items-center gap-1.5 sm:flex">
+            <span className="flex items-center gap-1.5 max-md:hidden">
+              <span className="text-ink-faint">·</span>
               <span className="h-2.5 w-2.5 rounded-sm border border-ink/20" style={{ backgroundColor: color?.hex }} aria-hidden="true" />
               <span className="text-ink">
                 {(state.tool === 'figure' && state.placingFigure ? state.placingFigure.name : part?.name)?.toUpperCase()}
-              </span>{' '}
-              · {rotation}°
-            </span>
-            {placement && (
-              <span className={placement.valid ? '' : 'text-signal-red'}>
-                X {placement.x} · Y {placement.y} · Z {placement.z}
               </span>
-            )}
+              <span className="text-ink-faint">·</span>
+              <span className="tabular-nums">{rotation}°</span>
+            </span>
           </div>
-
-          <div className="pointer-events-auto relative ml-auto flex items-end gap-2">
-            <ViewControls
-              mode={viewMode}
-              onMode={setViewMode}
-              onTurn={(dir) => setViewTurn((t) => ({ id: t.id + 1, dir }))}
-              onTilt={(dir) => setViewTilt((t) => ({ id: t.id + 1, dir }))}
-              onPan={panView}
-              onReset={() => setViewNonce((n) => n + 1)}
-            />
-            {showKeys && (
-              <div className="absolute bottom-11 right-0 w-64 border border-ink/15 bg-white/95 p-3 shadow-lg backdrop-blur" role="dialog" aria-label="Keyboard shortcuts">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft">CONTROLS</p>
-                  <button type="button" aria-label="Close shortcuts" onClick={() => setShowKeys(false)} className="text-ink-faint hover:text-ink">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <dl className="space-y-1 text-xs">
-                  {SHORTCUTS.map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-3">
-                      <dt>
-                        <kbd className="border border-ink/15 bg-slate-50 px-1 font-mono text-[10px]">{k}</kbd>
-                      </dt>
-                      <dd className="text-right text-ink-soft">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
+          <span className={`${DIVIDER_V} max-md:hidden`} aria-hidden="true" />
+          {/* Fixed width with even digits, so the bar doesn't shift as the cursor moves. */}
+          <div
+            className={`flex h-9 w-36 shrink-0 items-center justify-center font-mono text-[10px] tracking-[0.12em] tabular-nums max-md:hidden ${
+              placement ? (placement.valid ? 'text-ink' : 'text-signal-red') : 'text-ink-faint'
+            }`}
+          >
+            {placement ? `X ${placement.x} · Y ${placement.y} · Z ${placement.z}` : 'X – · Y – · Z –'}
+          </div>
+          <span className={DIVIDER_V} aria-hidden="true" />
+          <ViewControls
+            mode={viewMode}
+            onMode={setViewMode}
+            onTurn={(dir) => setViewTurn((t) => ({ id: t.id + 1, dir }))}
+            onTilt={(dir) => setViewTilt((t) => ({ id: t.id + 1, dir }))}
+            onPan={panView}
+            onReset={() => setViewNonce((n) => n + 1)}
+          />
+          {/* Shortcuts are for keyboards; phones skip the button to keep the bar on one row. */}
+          <span className={`${DIVIDER_V} max-md:hidden`} aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setShowKeys((v) => !v)}
+            aria-expanded={showKeys}
+            aria-label="Controls and shortcuts"
+            title="Controls and shortcuts (?)"
+            className={`${controlBtn(showKeys ? 'open' : 'idle')} max-md:hidden`}
+          >
+            <Keyboard className="h-4 w-4" />
+          </button>
+          {showKeys && (
+            <div className={`absolute bottom-full right-0 mb-2 w-72 p-4 ${SURFACE}`} role="dialog" aria-label="Keyboard shortcuts">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft">CONTROLS</p>
+                <button type="button" aria-label="Close shortcuts" onClick={() => setShowKeys(false)} className={controlBtn('idle', 'h-7 w-7')}>
+                  <X className="h-3.5 w-3.5" />
+                </button>
               </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowKeys((v) => !v)}
-              aria-expanded={showKeys}
-              aria-label="Controls and shortcuts"
-              title="Controls and shortcuts (?)"
-              className="flex h-9 w-9 items-center justify-center border border-ink/15 bg-white/95 text-ink-soft backdrop-blur hover:text-ink focus-visible:outline-2 focus-visible:outline-cobalt"
-            >
-              <Keyboard className="h-4 w-4" />
-            </button>
-          </div>
+              <dl className="space-y-1.5 text-xs">
+                {SHORTCUTS.map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-3">
+                    <dt>
+                      <kbd className="border border-ink/15 bg-slate-50 px-1 font-mono text-[10px]">{k}</kbd>
+                    </dt>
+                    <dd className="text-right text-ink-soft">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
         </div>
 
         {usingTouch && (
@@ -361,10 +371,10 @@ export default function StudioApp() {
   );
 }
 
-const viewBtn =
-  'flex h-9 w-9 items-center justify-center text-ink-soft transition-colors hover:bg-slate-100 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt';
+const viewBtn = controlBtn();
+const viewDivider = DIVIDER_V;
 
-/** On-canvas camera controls: 3D/2D toggle, rotate the baseplate view, reset. */
+/** Camera controls inside the status bar: 3D/2D toggle, rotate, tilt, pan, reset. */
 function ViewControls({
   mode,
   onMode,
@@ -381,8 +391,8 @@ function ViewControls({
   onReset: () => void;
 }) {
   return (
-    <div className="flex border border-ink/15 bg-white/95 backdrop-blur" role="toolbar" aria-label="View">
-      <div className="flex" role="radiogroup" aria-label="Camera view">
+    <div className="flex items-center gap-0.5" role="group" aria-label="View">
+      <div className="flex gap-0.5" role="radiogroup" aria-label="Camera view">
         {(
           [
             { id: '3d', label: '3D view', icon: Box },
@@ -397,16 +407,14 @@ function ViewControls({
             aria-label={label}
             title={`${label} (V)`}
             onClick={() => onMode(id)}
-            className={`flex h-9 items-center gap-1 px-2 font-mono text-[10px] font-semibold tracking-[0.1em] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt ${
-              mode === id ? 'bg-ink text-white' : 'text-ink-soft hover:bg-slate-100 hover:text-ink'
-            }`}
+            className={`${controlBtn(mode === id ? 'active' : 'idle', 'h-9 min-w-9 px-2')} gap-1 font-mono text-[10px] font-semibold tracking-[0.1em]`}
           >
             <Icon className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">{id.toUpperCase()}</span>
           </button>
         ))}
       </div>
-      <span className="my-2 w-px bg-ink/15" aria-hidden="true" />
+      <span className={viewDivider} aria-hidden="true" />
       <button type="button" aria-label="Rotate baseplate left" title="Rotate baseplate left (Q)" onClick={() => onTurn(-1)} className={viewBtn}>
         <RotateCcwSquare className="h-4 w-4" />
       </button>
@@ -424,8 +432,8 @@ function ViewControls({
         </>
       )}
       {/* Fingers pan with two-finger drags; the buttons are for mouse and trackpad. */}
-      <span className="my-2 hidden w-px bg-ink/15 md:block" aria-hidden="true" />
-      <div className="hidden md:flex" role="group" aria-label="Pan view">
+      <span className={`${viewDivider} max-md:hidden`} aria-hidden="true" />
+      <div className="flex gap-0.5 max-md:hidden" role="group" aria-label="Pan view">
         {(
           [
             { label: 'Pan left', icon: ArrowLeft, dx: -1, dy: 0 },
@@ -439,7 +447,7 @@ function ViewControls({
           </button>
         ))}
       </div>
-      <span className="my-2 hidden w-px bg-ink/15 md:block" aria-hidden="true" />
+      <span className={`${viewDivider} max-md:hidden`} aria-hidden="true" />
       <button type="button" aria-label="Reset view" title="Reset view" onClick={onReset} className={viewBtn}>
         <Focus className="h-4 w-4" />
       </button>

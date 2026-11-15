@@ -5,6 +5,7 @@ import { BRICK_COLORS, getColor } from '@/data/brickCatalog';
 import type { BrickColor, BrickFinish } from '@/types/brick';
 import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import { swatchStyle } from './Swatch';
+import { SECTION_LABEL } from './controls';
 
 const FINISHES: { id: BrickFinish; label: string }[] = [
   { id: 'solid', label: 'Solid' },
@@ -32,7 +33,7 @@ export default function ColorPopover({
   }
 
   return (
-    <div className="space-y-3 p-3">
+    <div className="space-y-4 p-4">
       {current && (
         <div className="flex items-center gap-2">
           <span className="h-5 w-5 rounded-sm border border-ink/20" style={swatchStyle(current)} aria-hidden="true" />
@@ -42,8 +43,8 @@ export default function ColorPopover({
       )}
       {recents.length > 0 && (
         <section>
-          <p className="mb-1.5 font-mono text-[9px] tracking-[0.18em] text-ink-faint">RECENT</p>
-          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Recent colours">
+          <p className={SECTION_LABEL}>RECENT</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Recent colours">
             {recents.map((c) => (
               <ColorSwatch key={c.id} c={c} selected={c.id === colorId} onPick={pick} />
             ))}
@@ -52,8 +53,8 @@ export default function ColorPopover({
       )}
       {FINISHES.map((f) => (
         <section key={f.id}>
-          <p className="mb-1.5 font-mono text-[9px] tracking-[0.18em] text-ink-faint">{f.label.toUpperCase()}</p>
-          <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={`${f.label} colours`}>
+          <p className={SECTION_LABEL}>{f.label.toUpperCase()}</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={`${f.label} colours`}>
             {BRICK_COLORS.filter((c) => c.finish === f.id).map((c) => (
               <ColorSwatch key={c.id} c={c} selected={c.id === colorId} onPick={pick} />
             ))}
@@ -74,7 +75,7 @@ function ColorSwatch({ c, selected, onPick }: { c: BrickColor; selected: boolean
       title={c.name}
       onClick={() => onPick(c.id)}
       className={`h-7 w-7 rounded-sm border transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt ${
-        selected ? 'border-ink ring-2 ring-cobalt ring-offset-1' : 'border-ink/20'
+        selected ? 'border-cobalt ring-2 ring-cobalt/40 ring-offset-1' : 'border-ink/20 hover:border-ink/40'
       }`}
       style={swatchStyle(c)}
     />

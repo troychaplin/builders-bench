@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { controlBtn } from './controls';
 
 /** The rail's panels. Only one is open at a time. */
 export type StudioPanel = 'blocks' | 'figures' | 'color' | 'baseplate';
@@ -55,14 +56,14 @@ export default function Flyout({
       aria-label={title}
       className={`pointer-events-auto fixed inset-x-0 bottom-0 z-30 flex max-h-[60dvh] flex-col border-t border-ink/15 bg-white shadow-[0_-12px_32px_-16px_rgba(15,23,42,0.4)] md:absolute md:inset-x-auto md:bottom-auto md:left-[4.5rem] md:top-20 md:max-h-[calc(100%-6.5rem)] md:border md:w-100 md:shadow-[0_16px_40px_-20px_rgba(15,23,42,0.5)]`}
     >
-      <header className="flex items-center justify-between border-b border-ink/10 px-3 py-2">
+      <header className="flex items-center justify-between border-b border-ink/10 py-2 pl-4 pr-2">
         <h2 className="font-mono text-[10px] font-semibold tracking-[0.2em] text-ink-soft">{title.toUpperCase()}</h2>
         <button
           type="button"
           data-flyout-close
           onClick={onClose}
           aria-label={`Close ${title}`}
-          className="p-1 text-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-cobalt"
+          className={controlBtn('idle', 'h-8 w-8')}
         >
           <X className="h-4 w-4" />
         </button>

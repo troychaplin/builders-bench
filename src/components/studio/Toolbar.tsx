@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type Dispatch, type ReactNode } from 'reac
 import { BookOpen, Download, FolderOpen, MoreHorizontal, Redo2, Share2, Undo2, Volume2, VolumeX } from 'lucide-react';
 import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import { CARTRIDGE_EXT } from '@/lib/studio/share';
+import { DIVIDER_V, SURFACE, controlBtn } from './controls';
 
 function IconButton({
   label,
@@ -25,14 +26,14 @@ function IconButton({
       title={shortcut ? `${label} (${shortcut})` : label}
       onClick={onClick}
       disabled={disabled}
-      className="flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-slate-100 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt disabled:cursor-not-allowed disabled:opacity-35"
+      className={`${controlBtn('idle', 'h-9 min-w-9 px-2')} text-sm font-medium`}
     >
       {children}
     </button>
   );
 }
 
-const Divider = () => <span className="mx-0.5 h-5 w-px shrink-0 bg-ink/15" aria-hidden="true" />;
+const Divider = () => <span className={DIVIDER_V} aria-hidden="true" />;
 
 interface ToolbarProps {
   state: StudioState;
@@ -76,8 +77,8 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
   }
 
   return (
-    <div className="flex items-center border border-ink/15 bg-white/95 px-1 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] backdrop-blur">
-      <label className="flex h-9 min-w-0 items-center px-2">
+    <div className={`flex items-center gap-0.5 p-1 ${SURFACE}`}>
+      <label className="flex h-9 min-w-0 items-center px-2.5">
         <span className="sr-only">Build title</span>
         <input
           value={project.title}
@@ -87,7 +88,7 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
       </label>
 
       {/* On desktop, undo and redo live in the tool rail. */}
-      <div className="flex items-center md:hidden">
+      <div className="flex items-center gap-0.5 md:hidden">
         <Divider />
         <IconButton label="Undo" shortcut="⌘Z" disabled={!past.length} onClick={() => dispatch({ type: 'undo' })}>
           <Undo2 className="h-4 w-4" />
@@ -100,7 +101,7 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
       <Divider />
 
       {/* File actions inline from sm up; behind a menu on phones. */}
-      <div className="hidden items-center sm:flex">
+      <div className="hidden items-center gap-0.5 sm:flex">
         {fileActions.map(({ id, label, icon: Icon, disabled }) => (
           <IconButton key={id} label={label} onClick={() => run(id)} disabled={disabled}>
             <Icon className="h-4 w-4" />
@@ -113,7 +114,7 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
           <MoreHorizontal className="h-4 w-4" />
         </IconButton>
         {menuOpen && (
-          <div role="menu" className="absolute right-0 top-10 z-40 w-48 border border-ink/15 bg-white py-1 shadow-lg">
+          <div role="menu" className={`absolute right-0 top-11 z-40 w-48 p-1 ${SURFACE}`}>
             {fileActions.map(({ id, label, icon: Icon, disabled }) => (
               <button
                 key={id}
@@ -124,7 +125,7 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
                   setMenuOpen(false);
                   run(id);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-soft hover:bg-slate-100 hover:text-ink disabled:opacity-35"
+                className="flex w-full items-center gap-2 px-2.5 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-slate-200/70 hover:text-ink disabled:opacity-35"
               >
                 <Icon className="h-4 w-4" /> {label}
               </button>
@@ -147,7 +148,7 @@ export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare
       <button
         type="button"
         onClick={onShare}
-        className="ml-1 flex h-8 shrink-0 items-center gap-1.5 bg-cobalt px-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt"
+        className="ml-1 flex h-9 shrink-0 items-center gap-1.5 bg-cobalt px-3.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt"
       >
         <Share2 className="h-4 w-4" />
         Share

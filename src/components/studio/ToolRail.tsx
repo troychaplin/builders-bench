@@ -7,6 +7,7 @@ import { activeSelection, type StudioAction, type StudioState } from '@/lib/stud
 import type { StudioPanel } from './Flyout';
 import PartThumb from './PartThumb';
 import { inkOn, swatchStyle } from './Swatch';
+import { SURFACE, controlBtn } from './controls';
 
 function RailButton({
   label,
@@ -37,9 +38,7 @@ function RailButton({
       aria-expanded={expanded}
       disabled={disabled}
       onClick={onClick}
-      className={`${className} group relative flex h-10 w-10 shrink-0 md:h-11 md:w-11 items-center justify-center transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt disabled:cursor-not-allowed disabled:opacity-35 ${
-        active ? 'bg-ink text-white' : expanded ? 'bg-slate-100 text-ink' : 'text-ink-soft hover:bg-slate-100 hover:text-ink'
-      }`}
+      className={`${className} group relative ${controlBtn(active ? 'active' : expanded ? 'open' : 'idle', 'h-10 w-10 md:h-11 md:w-11')}`}
     >
       {children}
       {/* Desktop tooltip to the right of the rail. */}
@@ -51,7 +50,7 @@ function RailButton({
 }
 
 const Divider = ({ className = '' }: { className?: string }) => (
-  <span className={`${className} mx-1 h-7 w-px shrink-0 bg-ink/15 md:mx-0 md:my-1 md:h-px md:w-7`} aria-hidden="true" />
+  <span className={`${className} mx-1 h-6 w-px shrink-0 bg-ink/15 md:mx-auto md:my-1 md:h-px md:w-6`} aria-hidden="true" />
 );
 
 /**
@@ -80,7 +79,7 @@ export default function ToolRail({
       data-studio-rail
       role="toolbar"
       aria-label="Build tools"
-      className="pointer-events-auto flex max-w-full items-center overflow-x-auto border border-ink/15 bg-white/95 p-1 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)] backdrop-blur md:flex-col md:overflow-visible"
+      className={`pointer-events-auto flex max-w-full items-center overflow-x-auto p-1 md:flex-col md:gap-0.5 md:overflow-visible ${SURFACE}`}
     >
       <RailButton
         label={part ? `Blocks: ${part.name}` : 'Blocks'}

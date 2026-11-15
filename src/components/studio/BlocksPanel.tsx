@@ -7,6 +7,7 @@ import type { BrickCategory, BrickPart } from '@/types/brick';
 import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import PartThumb from './PartThumb';
 import { inkOn } from './Swatch';
+import { SECTION_LABEL, chip, tile } from './controls';
 
 /** Browse every block by category or search, with the most recently used ones up top. */
 export default function BlocksPanel({
@@ -36,8 +37,8 @@ export default function BlocksPanel({
   }
 
   return (
-    <div className="space-y-3 p-3">
-      <label className="flex items-center gap-2 border border-ink/15 bg-white px-2 focus-within:border-cobalt">
+    <div className="space-y-4 p-4">
+      <label className="flex items-center gap-2 border border-ink/15 bg-white px-2.5 transition-colors focus-within:border-cobalt hover:border-ink/30">
         <Search className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
         <span className="sr-only">Search blocks</span>
         <input
@@ -45,14 +46,14 @@ export default function BlocksPanel({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search blocks (e.g. slope, 2x4)"
-          className="h-8 w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
+          className="h-9 w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
         />
       </label>
 
       {!q && recents.length > 0 && (
         <section>
-          <p className="mb-1.5 font-mono text-[9px] tracking-[0.18em] text-ink-faint">RECENT · KEYS 1–{recents.length}</p>
-          <div className="grid grid-cols-6 gap-1">
+          <p className={SECTION_LABEL}>RECENT · KEYS 1–{recents.length}</p>
+          <div className="grid grid-cols-6 gap-1.5">
             {recents.map((p, i) => (
               <button
                 key={p.id}
@@ -61,11 +62,9 @@ export default function BlocksPanel({
                 aria-label={`${p.name} (${i + 1})`}
                 title={`${p.name} (${i + 1})`}
                 aria-pressed={placing && p.id === partId}
-                className={`relative flex aspect-square items-center justify-center border transition-colors ${
-                  placing && p.id === partId ? 'border-cobalt bg-cobalt/5' : 'border-ink/15 hover:border-ink/40'
-                }`}
+                className={`relative flex aspect-square items-center justify-center ${tile(placing && p.id === partId)}`}
               >
-                <span className="absolute left-0.5 top-0 font-mono text-[8px] text-ink-faint">{i + 1}</span>
+                <span className="absolute left-1 top-0.5 font-mono text-[8px] leading-none text-ink-faint">{i + 1}</span>
                 <span style={{ color: inkOn(fill) }}>
                   <PartThumb part={p} fill={fill} className="h-5 w-8" />
                 </span>
@@ -75,7 +74,7 @@ export default function BlocksPanel({
         </section>
       )}
 
-      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Block categories">
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Block categories">
         {[{ id: 'all' as const, label: 'All' }, ...BRICK_CATEGORIES].map((c) => (
           <button
             key={c.id}
@@ -83,9 +82,7 @@ export default function BlocksPanel({
             role="tab"
             aria-selected={c.id === category}
             onClick={() => setCategory(c.id)}
-            className={`border px-2 py-0.5 text-[11px] font-medium transition-colors ${
-              c.id === category ? 'border-ink bg-ink text-white' : 'border-ink/15 text-ink-soft hover:border-ink/40 hover:text-ink'
-            }`}
+            className={`px-2.5 py-1 text-[11px] font-medium ${chip(c.id === category)}`}
           >
             {c.label}
           </button>
@@ -93,7 +90,7 @@ export default function BlocksPanel({
       </div>
 
       {parts.length ? (
-        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
           {parts.map((p) => {
             const selected = placing && p.id === partId;
             return (
@@ -102,9 +99,7 @@ export default function BlocksPanel({
                 type="button"
                 onClick={() => pick(p.id)}
                 aria-pressed={selected}
-                className={`flex flex-col items-center gap-1 border px-1 pb-1.5 pt-2.5 text-center transition-colors ${
-                  selected ? 'border-cobalt bg-cobalt/5' : 'border-ink/15 hover:border-ink/40'
-                }`}
+                className={`flex flex-col items-center gap-1.5 px-1.5 pb-2 pt-3 text-center ${tile(selected)}`}
               >
                 <span style={{ color: inkOn(fill) }}>
                   <PartThumb part={p} fill={fill} className="h-8 w-12" />
