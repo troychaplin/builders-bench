@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { controlBtn } from './controls';
 
 /** The rail's panels. Only one is open at a time. */
-export type StudioPanel = 'blocks' | 'figures' | 'color' | 'baseplate';
+export type StudioPanel = 'project' | 'blocks' | 'figures' | 'color' | 'baseplate';
 
 /**
  * Floating panel beside the tool rail (desktop) or a bottom sheet (phones).

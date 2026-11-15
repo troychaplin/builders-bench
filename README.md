@@ -18,7 +18,9 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 
 - Stud-snapping placement with a translucent preview that turns red where a piece can't go. The rules block overlapping, floating, and stacking on tiles, slopes or figures.
 - Eighteen procedurally modeled parts (bricks, plates, tiles, slopes, a round stud, a window, a wheel and axle) in 27 colors, including transparent and metallic finishes.
-- A floating **tool rail** with Blocks, Figures, Colour, Paint, Eraser, Rotate, Baseplate and Clear. It sits on the left on desktop and along the bottom on phones.
+- A floating **tool rail**: Project, Blocks, Colour, Paint, Eraser, Rotate, Baseplate, Figures, Undo, Redo and Clear. It sits on the left on desktop and along the bottom on phones.
+- A **Project** panel for the build's name, share link, saving and opening files, Play as Guided Kit and sound.
+- A top **status bar** with the piece count, the selected part, live X/Y/Z coordinates, the view controls and Share.
 - A **Blocks** browser with search, categories and thumbnails. A **Recent** strip keeps the last six blocks you placed, and keys 1–6 pick from it.
 - A **colour picker** with recent colours, then every colour grouped as solid, transparent or metallic.
 - A **Figures** panel for placing saved Figure Lab heroes onto the baseplate.
@@ -111,7 +113,7 @@ Because there's no server, the export can't include route handlers or Next's ima
 src/
 ├── app/                  Routes: /, /studio, /kits, /kits/[slug], /kits/play, /figure-lab, /sets
 ├── components/
-│   ├── studio/           3D scene, brick meshes, top bar, tool rail, blocks and colour panels
+│   ├── studio/           3D scene, brick meshes, status bar, tool rail, project, blocks and colour panels
 │   ├── kits/             Kit player, hologram scene, thumbnails, badges, confetti
 │   ├── figures/          BlockFigureMesh, SVG FigureIcon, Figure Lab, ID card
 │   ├── sets/             Set Explorer, comparison and wish list modals, range slider

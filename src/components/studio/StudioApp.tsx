@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, RotateCcwSquare, RotateCw, RotateCwSquare, Square, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, Redo2, RotateCcwSquare, RotateCw, RotateCwSquare, Share2, Square, Undo2, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { RECENT_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
@@ -15,7 +15,7 @@ import FiguresPanel from './FiguresPanel';
 import Flyout, { type StudioPanel } from './Flyout';
 import type { ViewMode, ViewPan, ViewTilt, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo, type TouchPending } from './StudioScene';
-import Toolbar from './Toolbar';
+import ProjectPanel, { type ProjectActions } from './ProjectPanel';
 import { DIVIDER_V, SURFACE, controlBtn } from './controls';
 import ToolRail from './ToolRail';
 
@@ -147,6 +147,8 @@ export default function StudioApp() {
   }, [panView, togglePanel]);
 
   const notify = useCallback((message: string) => setNotice(message), []);
+  // Lives here, not in the Project panel, so it survives the panel closing while the file picker is open.
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleShare() {
     const url = shareUrl(project);
@@ -190,6 +192,18 @@ export default function StudioApp() {
     });
   }
 
+  const projectActions: ProjectActions = {
+    sound,
+    onToggleSound: toggleSound,
+    onShare: handleShare,
+    onDownload: () => downloadCartridge(project),
+    onOpenFile: () => fileRef.current?.click(),
+    onPlayAsKit: () => {
+      saveAutosave(project);
+      router.push(`/kits/play${HASH_PREFIX}${encodeProject(project)}`);
+    },
+  };
+
   const sel = activeSelection(state);
   const part = getPart(sel.partId);
   const color = getColor(sel.colorId);
@@ -220,27 +234,20 @@ export default function StudioApp() {
         />
       </div>
 
-      {/* Top toolbar */}
-      <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-center">
-        <div className="pointer-events-auto max-w-full">
-          <Toolbar
-            state={state}
-            dispatch={dispatch}
-            sound={sound}
-            onToggleSound={toggleSound}
-            onShare={handleShare}
-            onDownload={() => downloadCartridge(project)}
-            onLoadFile={loadFile}
-            onPlayAsKit={() => {
-              saveAutosave(project);
-              router.push(`/kits/play${HASH_PREFIX}${encodeProject(project)}`);
-            }}
-          />
-        </div>
-      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept={`${CARTRIDGE_EXT},.json,application/json`}
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void loadFile(file);
+          e.target.value = '';
+        }}
+      />
 
       {/* Notice toast */}
-      <div aria-live="polite" className="pointer-events-none absolute inset-x-0 top-28 flex justify-center px-3 sm:top-20">
+      <div aria-live="polite" className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-3 md:left-[4.5rem]">
         {notice && <p className="border border-ink/15 bg-ink px-3 py-2 text-xs font-medium text-white shadow-lg">{notice}</p>}
       </div>
 
@@ -249,11 +256,11 @@ export default function StudioApp() {
         <ToolRail state={state} dispatch={dispatch} panel={panel} onPanel={togglePanel} />
       </div>
 
-      {/* Bottom HUD: status, view controls, shortcuts, touch confirm */}
-      <div className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] flex flex-col items-center gap-2 md:bottom-3 md:left-[4.5rem]">
+      {/* Top bar: status, view controls, history (phones), shortcuts, share */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 flex justify-center md:left-[4.5rem]">
         {/* One status + view bar: what you're building, where, and how you're looking at it. */}
-        <div role="toolbar" aria-label="Status and view" className={`pointer-events-auto relative flex max-w-full items-center gap-0.5 p-1 ${SURFACE}`}>
-          <div className="flex h-9 shrink-0 items-center gap-2 px-2.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft" aria-live="off">
+        <div role="toolbar" aria-label="Status and view" className={`pointer-events-auto relative flex max-w-full items-center p-1 md:gap-0.5 ${SURFACE}`}>
+          <div className="flex h-9 shrink-0 items-center gap-2 px-1.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft md:px-2.5">
             <span>
               <span className="max-sm:hidden">BRICKS </span>
               <span className="text-ink">{project.bricks.length}</span>
@@ -264,7 +271,8 @@ export default function StudioApp() {
                 </span>
               ) : null}
             </span>
-            <span className="flex items-center gap-1.5 max-md:hidden">
+            {/* The part readout needs room; the rail's Blocks button shows it at smaller widths. */}
+            <span className="flex items-center gap-1.5 max-xl:hidden">
               <span className="text-ink-faint">·</span>
               <span className="h-2.5 w-2.5 rounded-sm border border-ink/20" style={{ backgroundColor: color?.hex }} aria-hidden="true" />
               <span className="text-ink">
@@ -292,6 +300,14 @@ export default function StudioApp() {
             onPan={panView}
             onReset={() => setViewNonce((n) => n + 1)}
           />
+          {/* On desktop, undo and redo live in the tool rail. */}
+          <span className={`${DIVIDER_V} md:hidden`} aria-hidden="true" />
+          <button type="button" aria-label="Undo" disabled={!state.past.length} onClick={() => dispatch({ type: 'undo' })} className={`${controlBtn()} md:hidden`}>
+            <Undo2 className="h-4 w-4" />
+          </button>
+          <button type="button" aria-label="Redo" disabled={!state.future.length} onClick={() => dispatch({ type: 'redo' })} className={`${controlBtn()} md:hidden`}>
+            <Redo2 className="h-4 w-4" />
+          </button>
           {/* Shortcuts are for keyboards; phones skip the button to keep the bar on one row. */}
           <span className={`${DIVIDER_V} max-md:hidden`} aria-hidden="true" />
           <button
@@ -305,7 +321,7 @@ export default function StudioApp() {
             <Keyboard className="h-4 w-4" />
           </button>
           {showKeys && (
-            <div className={`absolute bottom-full right-0 mb-2 w-72 p-4 ${SURFACE}`} role="dialog" aria-label="Keyboard shortcuts">
+            <div className={`absolute right-0 top-full mt-2 w-72 p-4 ${SURFACE}`} role="dialog" aria-label="Keyboard shortcuts">
               <div className="mb-3 flex items-center justify-between">
                 <p className="font-mono text-[10px] tracking-[0.2em] text-ink-soft">CONTROLS</p>
                 <button type="button" aria-label="Close shortcuts" onClick={() => setShowKeys(false)} className={controlBtn('idle', 'h-7 w-7')}>
@@ -324,8 +340,20 @@ export default function StudioApp() {
               </dl>
             </div>
           )}
+          {/* Sharing stays one click away; phones share from the Project panel. */}
+          <button
+            type="button"
+            onClick={handleShare}
+            className="ml-1 flex h-9 shrink-0 items-center gap-1.5 bg-cobalt px-3.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cobalt max-md:hidden"
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </button>
         </div>
+      </div>
 
+      {/* Touch confirm sits just above the phone tool bar. */}
+      <div className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] flex justify-center md:bottom-3 md:left-[4.5rem]">
         {usingTouch && (
           <TouchConfirmBar
             pending={touchPending}
@@ -347,6 +375,11 @@ export default function StudioApp() {
         </div>
       )}
 
+      {panel === 'project' && (
+        <Flyout title="Project" onClose={closePanel}>
+          <ProjectPanel state={state} dispatch={dispatch} actions={projectActions} onDone={closePanel} />
+        </Flyout>
+      )}
       {panel === 'blocks' && (
         <Flyout title="Blocks" onClose={closePanel}>
           <BlocksPanel state={state} dispatch={dispatch} onPicked={closePanel} />
@@ -410,7 +443,7 @@ function ViewControls({
             className={`${controlBtn(mode === id ? 'active' : 'idle', 'h-9 min-w-9 px-2')} gap-1 font-mono text-[10px] font-semibold tracking-[0.1em]`}
           >
             <Icon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{id.toUpperCase()}</span>
+            <span className="hidden xl:inline">{id.toUpperCase()}</span>
           </button>
         ))}
       </div>
@@ -421,19 +454,21 @@ function ViewControls({
       <button type="button" aria-label="Rotate baseplate right" title="Rotate baseplate right (E)" onClick={() => onTurn(1)} className={viewBtn}>
         <RotateCwSquare className="h-4 w-4" />
       </button>
+      {/* Phones tilt with two fingers, so these give way to undo/redo there. */}
       {mode === '3d' && (
         <>
-          <button type="button" aria-label="Tilt view up" title="Tilt view up (W)" onClick={() => onTilt(1)} className={viewBtn}>
+          <button type="button" aria-label="Tilt view up" title="Tilt view up (W)" onClick={() => onTilt(1)} className={`${viewBtn} max-md:hidden`}>
             <ChevronsUp className="h-4 w-4" />
           </button>
-          <button type="button" aria-label="Tilt view down" title="Tilt view down (S)" onClick={() => onTilt(-1)} className={viewBtn}>
+          <button type="button" aria-label="Tilt view down" title="Tilt view down (S)" onClick={() => onTilt(-1)} className={`${viewBtn} max-md:hidden`}>
             <ChevronsDown className="h-4 w-4" />
           </button>
         </>
       )}
       {/* Fingers pan with two-finger drags; the buttons are for mouse and trackpad. */}
-      <span className={`${viewDivider} max-md:hidden`} aria-hidden="true" />
-      <div className="flex gap-0.5 max-md:hidden" role="group" aria-label="Pan view">
+      {/* Below lg the arrow keys still pan; the buttons need the room. */}
+      <span className={`${viewDivider} max-lg:hidden`} aria-hidden="true" />
+      <div className="flex gap-0.5 max-lg:hidden" role="group" aria-label="Pan view">
         {(
           [
             { label: 'Pan left', icon: ArrowLeft, dx: -1, dy: 0 },

@@ -1,7 +1,7 @@
 'use client';
 
 import type { Dispatch, ReactNode } from 'react';
-import { Eraser, Grid3x3, Grip, PaintBucket, Redo2, RotateCw, Trash2, Undo2, UserRound } from 'lucide-react';
+import { Eraser, FileBox, Grid3x3, Grip, PaintBucket, Redo2, RotateCw, Trash2, Undo2, UserRound } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { activeSelection, type StudioAction, type StudioState } from '@/lib/studio/reducer';
 import type { StudioPanel } from './Flyout';
@@ -81,6 +81,12 @@ export default function ToolRail({
       aria-label="Build tools"
       className={`pointer-events-auto flex max-w-full items-center overflow-x-auto p-1 md:flex-col md:gap-0.5 md:overflow-visible ${SURFACE}`}
     >
+      <RailButton label={`Project: ${project.title || 'Untitled'}`} expanded={panel === 'project'} onClick={() => onPanel('project')}>
+        <FileBox className="h-5 w-5" />
+      </RailButton>
+
+      <Divider />
+
       <RailButton
         label={part ? `Blocks: ${part.name}` : 'Blocks'}
         shortcut="B"
@@ -136,7 +142,9 @@ export default function ToolRail({
       <RailButton className="max-md:hidden" label="Redo" shortcut="⇧⌘Z" disabled={!state.future.length} onClick={() => dispatch({ type: 'redo' })}>
         <Redo2 className="h-5 w-5" />
       </RailButton>
+      {/* Phones run out of room; Clear moves into the Project panel there. */}
       <RailButton
+        className="max-md:hidden"
         label="Clear baseplate"
         disabled={!pieceCount}
         onClick={() => {
