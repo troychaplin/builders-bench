@@ -31,6 +31,9 @@ const SILVER = () => cachedMat('silver', () => new THREE.MeshStandardMaterial({ 
 const GOLD = () => cachedMat('gold', () => new THREE.MeshStandardMaterial({ color: '#d4a12a', metalness: 0.8, roughness: 0.28 }));
 const GLASS = () =>
   cachedMat('glass', () => new THREE.MeshStandardMaterial({ color: '#dbeafe', transparent: true, opacity: 0.32, roughness: 0.05, depthWrite: false }));
+const WOOD = () => cachedMat('wood', () => new THREE.MeshStandardMaterial({ color: '#8b5a2b', roughness: 0.7 }));
+const KHAKI = () => cachedMat('khaki', () => new THREE.MeshStandardMaterial({ color: '#c2a46b', roughness: 0.65 }));
+const FRECKLE = () => cachedMat('freckle', () => new THREE.MeshStandardMaterial({ color: '#9a5b3a', roughness: 0.6 }));
 const glow = (hex: string) =>
   cachedMat(`glow:${hex}`, () => new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 1.4, roughness: 0.3, toneMapped: false }));
 
@@ -82,7 +85,7 @@ const cyl = (rt: number, rb: number, h: number, seg = 20, open = false) => (
 
 /* ---------- parts ---------- */
 
-function Legs({ id, mat }: { id: string; mat: MatSpec }) {
+function Legs({ id, mat, skin }: { id: string; mat: MatSpec; skin: MatSpec }) {
   const boots = [-0.42, 0.42].map((x) => (
     <P key={`boot${x}`} geo={box(0.78, 0.45, 1.0)} mat={mat} position={[x, 0.225, 0.05]} />
   ));
@@ -103,12 +106,33 @@ function Legs({ id, mat }: { id: string; mat: MatSpec }) {
     );
   }
 
+  if (id === 'shorts') {
+    return (
+      <>
+        {boots}
+        {[-0.42, 0.42].map((x) => (
+          <group key={x}>
+            <P geo={box(0.6, 0.6, 0.66)} mat={skin} position={[x, 0.75, 0]} />
+            <P geo={box(0.74, 0.48, 0.8)} mat={mat} position={[x, 1.26, 0]} />
+          </group>
+        ))}
+      </>
+    );
+  }
+
   return (
     <>
       {boots}
       {[-0.42, 0.42].map((x) => (
         <P key={x} geo={box(0.72, 1.05, 0.78)} mat={mat} position={[x, 0.975, 0]} />
       ))}
+      {id === 'cargo-pants' &&
+        [-0.42, 0.42].map((x) => (
+          <group key={`c${x}`}>
+            <P geo={box(0.12, 0.36, 0.44)} mat={mat} position={[x + (x < 0 ? -0.39 : 0.39), 0.95, 0.02]} />
+            <P geo={box(0.14, 0.05, 0.46)} mat={INK()} position={[x + (x < 0 ? -0.39 : 0.39), 1.14, 0.02]} />
+          </group>
+        ))}
       {id === 'armored-greaves' &&
         [-0.42, 0.42].map((x) => (
           <group key={`g${x}`}>
@@ -188,6 +212,49 @@ function Torso({ id, mat, accent }: { id: string; mat: MatSpec; accent: MatSpec 
           <P geo={<torusGeometry args={[0.46, 0.16, 10, 24]} />} mat={mat} position={[0, 3.12, -0.12]} rotation={[Math.PI / 2.4, 0, 0]} />
         </>
       )}
+      {id === 'lab-coat' && (
+        <>
+          {[-0.45, 0.45].map((x) => (
+            <P key={x} geo={box(0.68, 1.32, 0.06)} mat={WHITE()} position={[x, 2.45, front]} />
+          ))}
+          {[-1, 1].map((s) => (
+            <P key={`l${s}`} geo={box(0.12, 0.5, 0.07)} mat={WHITE()} position={[0.18 * s, 2.86, front + 0.02]} rotation={[0, 0, 0.45 * s]} />
+          ))}
+          <P geo={box(0.26, 0.2, 0.04)} mat={WHITE()} position={[0.48, 2.6, front + 0.05]} />
+          <P geo={box(0.04, 0.22, 0.04)} mat={accent} position={[0.42, 2.72, front + 0.08]} />
+        </>
+      )}
+      {id === 'explorer-vest' && (
+        <>
+          {[-0.45, 0.45].map((x) => (
+            <group key={x}>
+              <P geo={box(0.6, 1.1, 0.08)} mat={KHAKI()} position={[x, 2.4, front]} />
+              <P geo={box(0.34, 0.26, 0.05)} mat={KHAKI()} position={[x, 2.2, front + 0.06]} />
+              <P geo={box(0.36, 0.05, 0.06)} mat={INK()} position={[x, 2.34, front + 0.07]} />
+            </group>
+          ))}
+        </>
+      )}
+      {id === 'sports-jersey' && (
+        <>
+          {[-1, 1].map((s) => (
+            <P key={s} geo={box(0.1, 0.4, 0.06)} mat={WHITE()} position={[0.13 * s, 2.92, front]} rotation={[0, 0, -0.55 * s]} />
+          ))}
+          <P geo={box(0.5, 0.1, 0.06)} mat={WHITE()} position={[0, 2.68, front]} />
+          <P geo={box(0.1, 0.62, 0.06)} mat={WHITE()} position={[0.08, 2.35, front]} rotation={[0, 0, -0.35]} />
+        </>
+      )}
+      {id === 'chef-jacket' && (
+        <>
+          <P geo={box(1.36, 1.15, 0.06)} mat={WHITE()} position={[0, 2.4, front]} />
+          {[-0.22, 0.22].map((x) =>
+            [2.15, 2.45, 2.75].map((y) => (
+              <P key={`${x}${y}`} geo={cyl(0.05, 0.05, 0.04, 10)} mat={INK()} position={[x, y, front + 0.04]} rotation={[Math.PI / 2, 0, 0]} />
+            )),
+          )}
+          <P geo={box(0.7, 0.16, 0.08)} mat={accent} position={[0, 3.02, front - 0.02]} />
+        </>
+      )}
       {id === 'cyber-mech-chest' && (
         <>
           <P geo={box(1.1, 0.8, 0.08)} mat={SILVER()} position={[0, 2.55, front]} />
@@ -234,6 +301,41 @@ function Accessory({ id, mat, glowHex }: { id: string; mat: MatSpec; glowHex: st
         <group rotation={[0.55, 0, 0]}>
           <P geo={box(0.12, 1.0, 0.08)} mat={mat} position={[0, 0.35, 0]} />
           <P geo={<torusGeometry args={[0.16, 0.06, 8, 16, Math.PI * 1.5]} />} mat={mat} position={[0, 0.95, 0]} rotation={[0, 0, Math.PI * 0.75]} />
+        </group>
+      );
+    case 'magic-wand':
+      return (
+        <group rotation={[0.55, 0, 0]}>
+          <P geo={cyl(0.04, 0.04, 0.9, 10)} mat={mat} position={[0, 0.3, 0]} />
+          <P geo={cyl(0.05, 0.05, 0.18, 10)} mat={WHITE()} position={[0, 0.72, 0]} />
+          <P geo={<octahedronGeometry args={[0.13]} />} mat={glow(glowHex)} position={[0, 0.9, 0]} />
+        </group>
+      );
+    case 'pickaxe':
+      return (
+        <group rotation={[0.55, 0, 0]}>
+          <P geo={cyl(0.05, 0.05, 1.3, 10)} mat={WOOD()} position={[0, 0.4, 0]} />
+          <P geo={box(0.8, 0.12, 0.12)} mat={mat} position={[0, 1.02, 0]} />
+          {[-1, 1].map((s) => (
+            <P key={s} geo={<coneGeometry args={[0.07, 0.3, 8]} />} mat={mat} position={[0.5 * s, 0.98, 0]} rotation={[0, 0, (-Math.PI / 2 - 0.25) * s]} />
+          ))}
+        </group>
+      );
+    case 'torch':
+      return (
+        <group rotation={[0.4, 0, 0]}>
+          <P geo={cyl(0.07, 0.05, 0.8, 10)} mat={WOOD()} position={[0, 0.25, 0]} />
+          <P geo={cyl(0.15, 0.09, 0.16, 12)} mat={mat} position={[0, 0.7, 0]} />
+          <P geo={<coneGeometry args={[0.13, 0.36, 10]} />} mat={glow('#f59e0b')} position={[0, 0.94, 0]} />
+        </group>
+      );
+    case 'spyglass':
+      return (
+        <group position={[0, 0.05, 0.2]}>
+          <P geo={cyl(0.08, 0.11, 0.9, 14)} mat={mat} position={[0, 0, 0.35]} rotation={[Math.PI / 2, 0, 0]} />
+          {[-0.05, 0.75].map((z) => (
+            <P key={z} geo={cyl(0.13, 0.13, 0.06, 14)} mat={GOLD()} position={[0, 0, z]} rotation={[Math.PI / 2, 0, 0]} />
+          ))}
         </group>
       );
     case 'crystal-staff':
@@ -317,6 +419,48 @@ function Face({ id }: { id: string }) {
           <P geo={cyl(0.13, 0.13, 0.04, 16)} mat={INK()} position={[-0.22, 3.8, z]} rotation={[Math.PI / 2, 0, 0]} />
           <P geo={box(1.08, 0.05, 1.04)} mat={INK()} position={[0, 3.9, 0]} rotation={[0, 0, 0.18]} />
           <P geo={box(0.3, 0.04, 0.03)} mat={INK()} position={[0.05, 3.56, z]} rotation={[0, 0, 0.2]} />
+        </>
+      );
+    case 'wink':
+      return (
+        <>
+          <P geo={cyl(0.07, 0.07, 0.03, 14)} mat={INK()} position={[-0.22, 3.8, z]} rotation={[Math.PI / 2, 0, 0]} />
+          <P geo={box(0.2, 0.05, 0.03)} mat={INK()} position={[0.22, 3.8, z]} rotation={[0, 0, 0.15]} />
+          {smile}
+        </>
+      );
+    case 'surprised':
+      return (
+        <>
+          {[-0.22, 0.22].map((x) => (
+            <P key={x} geo={cyl(0.1, 0.1, 0.03, 16)} mat={INK()} position={[x, 3.82, z]} rotation={[Math.PI / 2, 0, 0]} />
+          ))}
+          <P geo={<torusGeometry args={[0.09, 0.035, 8, 18]} />} mat={INK()} position={[0, 3.53, z]} />
+        </>
+      );
+    case 'sleepy':
+      return (
+        <>
+          {[-0.22, 0.22].map((x) => (
+            <P key={x} geo={<torusGeometry args={[0.1, 0.03, 8, 16, Math.PI]} />} mat={INK()} position={[x, 3.82, z]} rotation={[0, 0, Math.PI]} />
+          ))}
+          <P geo={box(0.16, 0.05, 0.03)} mat={INK()} position={[0, 3.56, z]} />
+        </>
+      );
+    case 'freckles':
+      return (
+        <>
+          {[-0.22, 0.22].map((x) => (
+            <P key={x} geo={cyl(0.07, 0.07, 0.03, 14)} mat={INK()} position={[x, 3.8, z]} rotation={[Math.PI / 2, 0, 0]} />
+          ))}
+          {[-1, 1].map((s) =>
+            [
+              [0.3, 3.66],
+              [0.38, 3.62],
+              [0.32, 3.57],
+            ].map(([x, y]) => <P key={`${s}${x}${y}`} geo={box(0.04, 0.04, 0.025)} mat={FRECKLE()} position={[x * s, y, z]} />),
+          )}
+          {smile}
         </>
       );
     case 'battle-determination':
@@ -426,6 +570,51 @@ function Headgear({ id, mat, accent }: { id: string; mat: MatSpec; accent: MatSp
           <P geo={<sphereGeometry args={[0.09, 12, 10]} />} mat={glow(colorHexFromMat(mat))} position={[0, top + 0.14, 0.5]} />
         </>
       );
+    case 'chef-hat':
+      return (
+        <>
+          <P geo={cyl(0.5, 0.5, 0.32, 24)} mat={mat} position={[0, top + 0.14, 0]} />
+          <P geo={<sphereGeometry args={[0.6, 20, 14]} />} mat={mat} position={[0, top + 0.55, 0]} scale={[1, 0.62, 1]} />
+        </>
+      );
+    case 'baseball-cap':
+      return (
+        <>
+          <P geo={<sphereGeometry args={[0.56, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />} mat={mat} position={[0, top - 0.08, 0]} />
+          <P geo={box(0.92, 0.06, 0.52)} mat={mat} position={[0, top - 0.06, 0.66]} />
+          <P geo={<sphereGeometry args={[0.07, 10, 8]} />} mat={accent} position={[0, top + 0.47, 0]} />
+        </>
+      );
+    case 'horned-helmet':
+      return (
+        <>
+          <P geo={<sphereGeometry args={[0.6, 22, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />} mat={mat} position={[0, top - 0.12, 0]} />
+          <P geo={cyl(0.6, 0.6, 0.12, 24, true)} mat={SILVER()} position={[0, top - 0.08, 0]} />
+          {[-1, 1].map((s) => (
+            <P key={s} geo={<coneGeometry args={[0.13, 0.62, 12]} />} mat={WHITE()} position={[0.66 * s, top + 0.28, 0]} rotation={[0, 0, -0.85 * s]} />
+          ))}
+        </>
+      );
+    case 'top-hat':
+      return (
+        <>
+          <P geo={cyl(0.76, 0.76, 0.06, 28)} mat={mat} position={[0, top + 0.03, 0]} />
+          <P geo={cyl(0.46, 0.48, 0.9, 24)} mat={mat} position={[0, top + 0.5, 0]} />
+          <P geo={cyl(0.49, 0.49, 0.16, 24, true)} mat={accent} position={[0, top + 0.15, 0]} />
+        </>
+      );
+    case 'headphones':
+      return (
+        <>
+          <P geo={<torusGeometry args={[0.62, 0.06, 8, 24, Math.PI]} />} mat={mat} position={[0, 3.72, 0]} />
+          {[-1, 1].map((s) => (
+            <group key={s}>
+              <P geo={cyl(0.24, 0.24, 0.18, 18)} mat={mat} position={[0.62 * s, 3.66, 0]} rotation={[0, 0, Math.PI / 2]} />
+              <P geo={cyl(0.18, 0.18, 0.04, 18)} mat={glow(colorHexFromMat(accent))} position={[0.72 * s, 3.66, 0]} rotation={[0, 0, Math.PI / 2]} />
+            </group>
+          ))}
+        </>
+      );
     case 'cyber-visor':
       return (
         <>
@@ -465,7 +654,7 @@ function BlockFigureMesh({ figure, override, ghost = false }: BlockFigureMeshPro
   return (
     <FigureCtx.Provider value={{ override, ghost }}>
       <group>
-        <Legs id={figure.legsId} mat={mat('legs')} />
+        <Legs id={figure.legsId} mat={mat('legs')} skin={skin} />
         <Hips legsId={figure.legsId} mat={mat('legs')} />
         <Torso id={figure.torsoId} mat={mat('torso')} accent={mat('arms')} />
 

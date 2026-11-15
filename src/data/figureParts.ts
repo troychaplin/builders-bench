@@ -16,6 +16,12 @@ export const HEADGEAR: FigurePart[] = [
   { id: 'wizard-hat', name: 'Wizard Hat' },
   { id: 'royal-crown', name: 'Royal Crown' },
   { id: 'cyber-visor', name: 'Cyber Visor' },
+  // Append only: share links store each part's index in its list.
+  { id: 'chef-hat', name: 'Chef Hat' },
+  { id: 'baseball-cap', name: 'Baseball Cap' },
+  { id: 'horned-helmet', name: 'Horned Helmet' },
+  { id: 'top-hat', name: 'Top Hat' },
+  { id: 'headphones', name: 'Headphones' },
 ];
 
 export const EXPRESSIONS: FigurePart[] = [
@@ -25,6 +31,10 @@ export const EXPRESSIONS: FigurePart[] = [
   { id: 'bot-face', name: 'Bot Face' },
   { id: 'pirate-eyepatch', name: 'Pirate Eyepatch' },
   { id: 'battle-determination', name: 'Battle Determination' },
+  { id: 'wink', name: 'Wink' },
+  { id: 'surprised', name: 'Surprised' },
+  { id: 'sleepy', name: 'Sleepy' },
+  { id: 'freckles', name: 'Freckles' },
 ];
 
 export const TORSOS: FigurePart[] = [
@@ -34,6 +44,10 @@ export const TORSOS: FigurePart[] = [
   { id: 'ninja-tunic', name: 'Ninja Tunic' },
   { id: 'street-hoodie', name: 'Street Hoodie' },
   { id: 'cyber-mech-chest', name: 'Cyber Mech Chest' },
+  { id: 'lab-coat', name: 'Lab Coat' },
+  { id: 'explorer-vest', name: 'Explorer Vest' },
+  { id: 'sports-jersey', name: 'Sports Jersey' },
+  { id: 'chef-jacket', name: 'Chef Jacket' },
 ];
 
 export const LEGS: FigurePart[] = [
@@ -41,6 +55,8 @@ export const LEGS: FigurePart[] = [
   { id: 'armored-greaves', name: 'Armored Greaves' },
   { id: 'utility-belt-legs', name: 'Utility Belt Legs' },
   { id: 'mech-legs', name: 'Mech Legs' },
+  { id: 'shorts', name: 'Shorts' },
+  { id: 'cargo-pants', name: 'Cargo Pants' },
 ];
 
 export const ACCESSORIES: FigurePart[] = [
@@ -51,6 +67,10 @@ export const ACCESSORIES: FigurePart[] = [
   { id: 'wrench', name: 'Wrench' },
   { id: 'tower-shield', name: 'Tower Shield' },
   { id: 'crystal-staff', name: 'Crystal Staff' },
+  { id: 'magic-wand', name: 'Magic Wand' },
+  { id: 'pickaxe', name: 'Pickaxe' },
+  { id: 'torch', name: 'Torch' },
+  { id: 'spyglass', name: 'Spyglass' },
 ];
 
 export interface SlotDef {

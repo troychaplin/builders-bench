@@ -38,8 +38,16 @@ export default function FigureIcon({ figure, size = 80 }: { figure: BlockFigure;
       {[-0.42, 0.42].map((x) => (
         <g key={x}>
           {rect(x, 0, 0.78, 0.45, c('legs'))}
-          {rect(x, 0.45, 0.7, 1.05, figure.legsId === 'mech-legs' ? '#a8adb3' : c('legs'))}
+          {figure.legsId === 'shorts' ? (
+            <>
+              {rect(x, 0.45, 0.6, 0.6, skin)}
+              {rect(x, 1.02, 0.74, 0.48, c('legs'))}
+            </>
+          ) : (
+            rect(x, 0.45, 0.7, 1.05, figure.legsId === 'mech-legs' ? '#a8adb3' : c('legs'))
+          )}
           {figure.legsId === 'armored-greaves' && rect(x, 0.55, 0.74, 0.45, '#a8adb3')}
+          {figure.legsId === 'cargo-pants' && rect(x + (x < 0 ? -0.36 : 0.36), 0.75, 0.14, 0.38, c('legs'))}
         </g>
       ))}
       {rect(0, 1.5, 1.64, 0.3, c('legs'))}
@@ -64,6 +72,29 @@ export default function FigureIcon({ figure, size = 80 }: { figure: BlockFigure;
         <line x1={X(-0.6)} y1={Y(1.9)} x2={X(0.6)} y2={Y(3.0)} stroke={c('arms')} strokeWidth={5} />
       )}
       {figure.torsoId === 'street-hoodie' && rect(0, 1.9, 0.9, 0.35, c('arms'))}
+      {figure.torsoId === 'lab-coat' && (
+        <>
+          {rect(-0.45, 1.8, 0.66, 1.3, '#f8fafc')}
+          {rect(0.45, 1.8, 0.66, 1.3, '#f8fafc')}
+        </>
+      )}
+      {figure.torsoId === 'explorer-vest' && (
+        <>
+          {rect(-0.45, 1.85, 0.58, 1.1, '#c2a46b')}
+          {rect(0.45, 1.85, 0.58, 1.1, '#c2a46b')}
+          {rect(-0.45, 2.05, 0.32, 0.26, '#c2a46b')}
+          {rect(0.45, 2.05, 0.32, 0.26, '#c2a46b')}
+        </>
+      )}
+      {figure.torsoId === 'sports-jersey' && (
+        <path d={`M ${X(-0.25)} ${Y(2.75)} L ${X(0.25)} ${Y(2.75)} L ${X(0)} ${Y(2.05)}`} stroke="#f8fafc" strokeWidth={3.5} fill="none" />
+      )}
+      {figure.torsoId === 'chef-jacket' && (
+        <>
+          {rect(0, 1.85, 1.36, 1.15, '#f8fafc')}
+          {[-0.22, 0.22].map((x) => [2.15, 2.45, 2.75].map((y) => <circle key={`${x}${y}`} cx={X(x)} cy={Y(y)} r={1.4} fill={INK} />))}
+        </>
+      )}
       {figure.torsoId === 'cyber-mech-chest' && <circle cx={X(0)} cy={Y(2.55)} r={6} fill="#22d3ee" stroke={INK} strokeWidth={1} />}
 
       {/* head */}
@@ -107,6 +138,44 @@ function Face({ id }: { id: string }) {
           <line x1={X(-0.52)} y1={Y(4.05)} x2={X(0.52)} y2={Y(3.85)} stroke={INK} strokeWidth={1.2} />
           {eye(0.22)}
           <path d={`M ${X(-0.1)} ${Y(3.6)} L ${X(0.2)} ${Y(3.66)}`} stroke={INK} strokeWidth={1.6} />
+        </>
+      );
+    case 'wink':
+      return (
+        <>
+          <circle cx={X(-0.22)} cy={Y(3.8)} r={2} fill={INK} />
+          <line x1={X(0.14)} y1={Y(3.8)} x2={X(0.3)} y2={Y(3.82)} stroke={INK} strokeWidth={1.6} />
+          {smile}
+        </>
+      );
+    case 'surprised':
+      return (
+        <>
+          <circle cx={X(-0.22)} cy={Y(3.82)} r={2.6} fill={INK} />
+          <circle cx={X(0.22)} cy={Y(3.82)} r={2.6} fill={INK} />
+          <circle cx={X(0)} cy={Y(3.53)} r={2.4} fill="none" stroke={INK} strokeWidth={1.4} />
+        </>
+      );
+    case 'sleepy':
+      return (
+        <>
+          <path d={`M ${X(-0.32)} ${Y(3.82)} Q ${X(-0.22)} ${Y(3.74)} ${X(-0.12)} ${Y(3.82)} M ${X(0.12)} ${Y(3.82)} Q ${X(0.22)} ${Y(3.74)} ${X(0.32)} ${Y(3.82)}`} stroke={INK} strokeWidth={1.4} fill="none" />
+          <line x1={X(-0.08)} y1={Y(3.56)} x2={X(0.08)} y2={Y(3.56)} stroke={INK} strokeWidth={1.6} />
+        </>
+      );
+    case 'freckles':
+      return (
+        <>
+          <circle cx={X(-0.22)} cy={Y(3.8)} r={2} fill={INK} />
+          <circle cx={X(0.22)} cy={Y(3.8)} r={2} fill={INK} />
+          {[-1, 1].map((s) =>
+            [
+              [0.3, 3.66],
+              [0.38, 3.62],
+              [0.32, 3.57],
+            ].map(([x, y]) => <circle key={`${s}${x}${y}`} cx={X(x * s)} cy={Y(y)} r={0.8} fill="#9a5b3a" />),
+          )}
+          {smile}
         </>
       );
     case 'battle-determination':
@@ -188,6 +257,53 @@ function Headgear({ id, color, accent }: { id: string; color: string; accent: st
           strokeWidth={1}
         />
       );
+    case 'chef-hat':
+      return (
+        <>
+          {rect(0, top, 0.92, 0.3, color)}
+          <ellipse cx={X(0)} cy={Y(top + 0.62)} rx={0.6 * 28} ry={0.36 * 23} fill={color} stroke={INK} strokeWidth={1} />
+        </>
+      );
+    case 'baseball-cap':
+      return (
+        <>
+          <path d={`M ${X(-0.56)} ${Y(top - 0.05)} A ${0.56 * 28} ${0.5 * 23} 0 0 1 ${X(0.56)} ${Y(top - 0.05)} Z`} fill={color} stroke={INK} strokeWidth={1} />
+          {rect(0, top - 0.12, 1.16, 0.1, color)}
+        </>
+      );
+    case 'horned-helmet':
+      return (
+        <>
+          <path d={`M ${X(-0.6)} ${Y(top - 0.1)} A ${0.6 * 28} ${0.55 * 23} 0 0 1 ${X(0.6)} ${Y(top - 0.1)} Z`} fill={color} stroke={INK} strokeWidth={1} />
+          {[-1, 1].map((s) => (
+            <polygon
+              key={s}
+              points={`${X(0.52 * s)},${Y(top + 0.05)} ${X(1.0 * s)},${Y(top + 0.62)} ${X(0.62 * s)},${Y(top + 0.3)}`}
+              fill="#f8fafc"
+              stroke={INK}
+              strokeWidth={1}
+            />
+          ))}
+        </>
+      );
+    case 'top-hat':
+      return (
+        <>
+          {rect(0, top, 1.5, 0.08, color)}
+          {rect(0, top + 0.08, 0.92, 0.88, color)}
+          {rect(0, top + 0.08, 0.92, 0.18, accent)}
+        </>
+      );
+    case 'headphones':
+      return (
+        <>
+          {/* Outline first so a light band still shows against the background. */}
+          <path d={`M ${X(-0.62)} ${Y(3.7)} A ${0.62 * 28} ${0.62 * 23} 0 0 1 ${X(0.62)} ${Y(3.7)}`} stroke={INK} strokeWidth={5} fill="none" />
+          <path d={`M ${X(-0.62)} ${Y(3.7)} A ${0.62 * 28} ${0.62 * 23} 0 0 1 ${X(0.62)} ${Y(3.7)}`} stroke={color} strokeWidth={3} fill="none" />
+          {rect(-0.62, 3.42, 0.22, 0.5, color, { rx: 2 })}
+          {rect(0.62, 3.42, 0.22, 0.5, color, { rx: 2 })}
+        </>
+      );
     case 'cyber-visor':
       return (
         <>
@@ -220,6 +336,40 @@ function HeldItem({ id, color }: { id: string; color: string }) {
         <>
           <rect x={hx - 2} y={hy - 24} width={4} height={22} fill={color} stroke={INK} strokeWidth={1} />
           <circle cx={hx} cy={hy - 27} r={5} fill="none" stroke={color} strokeWidth={3} />
+        </>
+      );
+    case 'magic-wand':
+      return (
+        <>
+          <line x1={hx} y1={hy - 2} x2={hx} y2={hy - 24} stroke={color} strokeWidth={2.5} />
+          <polygon
+            points={`${hx},${hy - 33} ${hx + 2.5},${hy - 27} ${hx + 7},${hy - 27} ${hx + 3.5},${hy - 23.5} ${hx + 5},${hy - 18} ${hx},${hy - 21.5} ${hx - 5},${hy - 18} ${hx - 3.5},${hy - 23.5} ${hx - 7},${hy - 27} ${hx - 2.5},${hy - 27}`}
+            fill="#facc15"
+            stroke={INK}
+            strokeWidth={0.8}
+          />
+        </>
+      );
+    case 'pickaxe':
+      return (
+        <>
+          <rect x={hx - 1.8} y={hy - 30} width={3.6} height={28} fill="#8b5a2b" stroke={INK} strokeWidth={0.8} />
+          <path d={`M ${hx - 13} ${hy - 25} Q ${hx} ${hy - 35} ${hx + 13} ${hy - 25} L ${hx + 11} ${hy - 28} Q ${hx} ${hy - 38} ${hx - 11} ${hy - 28} Z`} fill={color} stroke={INK} strokeWidth={1} />
+        </>
+      );
+    case 'torch':
+      return (
+        <>
+          <rect x={hx - 2} y={hy - 20} width={4} height={18} fill="#8b5a2b" stroke={INK} strokeWidth={0.8} />
+          <rect x={hx - 4} y={hy - 24} width={8} height={4} fill={color} stroke={INK} strokeWidth={0.8} />
+          <path d={`M ${hx - 3.5} ${hy - 24} Q ${hx} ${hy - 38} ${hx + 3.5} ${hy - 24} Z`} fill="#f59e0b" stroke={INK} strokeWidth={0.8} />
+        </>
+      );
+    case 'spyglass':
+      return (
+        <>
+          <rect x={hx - 16} y={hy - 4} width={16} height={6} fill={color} stroke={INK} strokeWidth={1} />
+          <rect x={hx - 18} y={hy - 5} width={3} height={8} fill="#d4a12a" stroke={INK} strokeWidth={0.8} />
         </>
       );
     default:
