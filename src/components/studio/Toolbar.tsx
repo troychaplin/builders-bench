@@ -86,6 +86,7 @@ export default function Toolbar({
 }: ToolbarProps) {
   const { tool, rotation, past, future, project } = state;
   const plate = getBaseplateColor(project.baseplateColor);
+  const pieceCount = project.bricks.length + (project.figures?.length ?? 0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -130,13 +131,15 @@ export default function Toolbar({
         <Redo2 className="h-4 w-4" />
       </IconButton>
       <IconButton
-        label="Clear build"
-        disabled={!project.bricks.length}
+        label="Clear baseplate"
+        disabled={!pieceCount}
         onClick={() => {
-          if (window.confirm('Clear every brick from the baseplate? You can undo this.')) dispatch({ type: 'clear' });
+          const what = project.figures?.length ? 'brick and figure' : 'brick';
+          if (window.confirm(`Clear every ${what} from the baseplate? You can undo this.`)) dispatch({ type: 'clear' });
         }}
       >
         <Trash2 className="h-4 w-4" />
+        <span>Clear</span>
       </IconButton>
 
       <Divider />
