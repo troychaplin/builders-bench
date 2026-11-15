@@ -5,7 +5,6 @@ import {
   BookOpen,
   Download,
   Eraser,
-  Focus,
   FolderOpen,
   PaintBucket,
   Plus,
@@ -69,7 +68,6 @@ interface ToolbarProps {
   onShare: () => void;
   onDownload: () => void;
   onLoadFile: (file: File) => void;
-  onResetView: () => void;
   onPlayAsKit: () => void;
 }
 
@@ -81,7 +79,6 @@ export default function Toolbar({
   onShare,
   onDownload,
   onLoadFile,
-  onResetView,
   onPlayAsKit,
 }: ToolbarProps) {
   const { tool, rotation, past, future, project } = state;
@@ -165,9 +162,6 @@ export default function Toolbar({
         })}
       </div>
 
-      <IconButton label="Reset view" onClick={onResetView}>
-        <Focus className="h-4 w-4" />
-      </IconButton>
       <IconButton label={sound ? 'Mute sounds' : 'Unmute sounds'} active={false} onClick={onToggleSound}>
         {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
       </IconButton>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileUp, Keyboard, X } from 'lucide-react';
+import { Box, FileUp, Focus, Keyboard, RotateCcwSquare, RotateCwSquare, Square, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BIN_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
@@ -10,14 +10,17 @@ import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartr
 import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
 import BinsHud from './BinsHud';
 import PartsDrawer, { type DrawerTab } from './PartsDrawer';
+import type { ViewMode, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo } from './StudioScene';
 import Toolbar from './Toolbar';
 
 const SHORTCUTS: [string, string][] = [
   ['Left-click', 'Place / erase / paint'],
-  ['Right-drag', 'Orbit camera'],
+  ['Right-drag', 'Orbit (3D) / pan (2D)'],
   ['Middle-drag', 'Pan'],
   ['Scroll', 'Zoom'],
+  ['V', 'Toggle 3D / 2D view'],
+  ['Q / E', 'Rotate baseplate left / right'],
   ['1 – 6', 'Pick a BuildBin'],
   ['R', 'Rotate 90° clockwise'],
   ['X', 'Toggle eraser'],
@@ -48,6 +51,8 @@ export default function StudioApp() {
   const drawerOpen = drawerTab !== null;
   const [dragging, setDragging] = useState(false);
   const [viewNonce, setViewNonce] = useState(0);
+  const [viewMode, setViewMode] = useState<ViewMode>('3d');
+  const [viewTurn, setViewTurn] = useState<ViewTurn>({ id: 0, dir: 1 });
   const [placement, setPlacement] = useState<PlacementInfo | null>(null);
 
   const { project, bins, rotation } = state;
@@ -101,6 +106,9 @@ export default function StudioApp() {
         else if (k === 'x' || k === 'delete') dispatch({ type: 'toggleTool', tool: 'erase' });
         else if (k === 'p') dispatch({ type: 'toggleTool', tool: 'paint' });
         else if (k === 'f') setDrawerTab('figures');
+        else if (k === 'v') setViewMode((m) => (m === '3d' ? '2d' : '3d'));
+        else if (k === 'q') setViewTurn((t) => ({ id: t.id + 1, dir: -1 }));
+        else if (k === 'e') setViewTurn((t) => ({ id: t.id + 1, dir: 1 }));
         else if (k === 'escape') dispatch({ type: 'setTool', tool: 'place' });
         else if (k === '?') setShowKeys((v) => !v);
       }
@@ -172,6 +180,8 @@ export default function StudioApp() {
           onNotice={notify}
           onPlacementChange={setPlacement}
           viewNonce={viewNonce}
+          viewMode={viewMode}
+          viewTurn={viewTurn}
           sound={sound}
         />
       </div>
@@ -187,7 +197,6 @@ export default function StudioApp() {
             onShare={handleShare}
             onDownload={() => downloadCartridge(project)}
             onLoadFile={loadFile}
-            onResetView={() => setViewNonce((n) => n + 1)}
             onPlayAsKit={() => {
               saveAutosave(project);
               router.push(`/kits/play${HASH_PREFIX}${encodeProject(project)}`);
@@ -227,7 +236,13 @@ export default function StudioApp() {
             )}
           </div>
 
-          <div className="pointer-events-auto relative">
+          <div className="pointer-events-auto relative flex items-end gap-2">
+            <ViewControls
+              mode={viewMode}
+              onMode={setViewMode}
+              onTurn={(dir) => setViewTurn((t) => ({ id: t.id + 1, dir }))}
+              onReset={() => setViewNonce((n) => n + 1)}
+            />
             {showKeys && (
               <div className="absolute bottom-11 right-0 w-64 border border-ink/15 bg-white/95 p-3 shadow-lg backdrop-blur" role="dialog" aria-label="Keyboard shortcuts">
                 <div className="mb-2 flex items-center justify-between">
@@ -276,6 +291,61 @@ export default function StudioApp() {
       )}
 
       {drawerTab && <PartsDrawer state={state} dispatch={dispatch} onClose={closeDrawer} initialTab={drawerTab} />}
+    </div>
+  );
+}
+
+const viewBtn =
+  'flex h-9 w-9 items-center justify-center text-ink-soft transition-colors hover:bg-slate-100 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt';
+
+/** On-canvas camera controls: 3D/2D toggle, rotate the baseplate view, reset. */
+function ViewControls({
+  mode,
+  onMode,
+  onTurn,
+  onReset,
+}: {
+  mode: ViewMode;
+  onMode: (m: ViewMode) => void;
+  onTurn: (dir: 1 | -1) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="flex border border-ink/15 bg-white/95 backdrop-blur" role="toolbar" aria-label="View">
+      <div className="flex" role="radiogroup" aria-label="Camera view">
+        {(
+          [
+            { id: '3d', label: '3D view', icon: Box },
+            { id: '2d', label: 'Top-down 2D view', icon: Square },
+          ] as const
+        ).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={mode === id}
+            aria-label={label}
+            title={`${label} (V)`}
+            onClick={() => onMode(id)}
+            className={`flex h-9 items-center gap-1 px-2 font-mono text-[10px] font-semibold tracking-[0.1em] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt ${
+              mode === id ? 'bg-ink text-white' : 'text-ink-soft hover:bg-slate-100 hover:text-ink'
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {id.toUpperCase()}
+          </button>
+        ))}
+      </div>
+      <span className="my-2 w-px bg-ink/15" aria-hidden="true" />
+      <button type="button" aria-label="Rotate baseplate left" title="Rotate baseplate left (Q)" onClick={() => onTurn(-1)} className={viewBtn}>
+        <RotateCcwSquare className="h-4 w-4" />
+      </button>
+      <button type="button" aria-label="Rotate baseplate right" title="Rotate baseplate right (E)" onClick={() => onTurn(1)} className={viewBtn}>
+        <RotateCwSquare className="h-4 w-4" />
+      </button>
+      <button type="button" aria-label="Reset view" title="Reset view" onClick={onReset} className={viewBtn}>
+        <Focus className="h-4 w-4" />
+      </button>
     </div>
   );
 }

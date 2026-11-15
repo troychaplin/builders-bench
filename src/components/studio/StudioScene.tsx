@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState, type Dispatch } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
-import { MOUSE, TOUCH, Vector3, type Object3D } from 'three';
+import { Vector3, type Object3D } from 'three';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BASEPLATE_SIZE, getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
 import { buildOccupancy, isSupportingOthers, resolvePlacement } from '@/lib/studio/occupancy';
@@ -11,13 +10,13 @@ import { activeSelection, type StudioAction, type StudioState } from '@/lib/stud
 import { newInstanceId } from '@/lib/studio/share';
 import { playBlocked, playRemove, playSnap } from '@/lib/studio/sound';
 import { brickMaterial, ghostMaterial } from '@/lib/studio/three';
-import CameraRig from '@/components/three/CameraRig';
 import SceneLighting from '@/components/three/SceneLighting';
 import BlockFigureMesh from '@/components/figures/BlockFigureMesh';
 import { FIGURE_PART } from '@/lib/studio/figures';
 import type { BrickPart, PlacedFigure } from '@/types/brick';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
+import StudioCamera, { type ViewMode, type ViewTurn } from './StudioCamera';
 
 export interface PlacementInfo {
   x: number;
@@ -33,19 +32,12 @@ interface SceneProps {
   onPlacementChange?: (p: PlacementInfo | null) => void;
   /** Bump to reset the camera. */
   viewNonce: number;
+  viewMode: ViewMode;
+  viewTurn: ViewTurn;
   sound: boolean;
 }
 
 const SIZE = BASEPLATE_SIZE;
-
-// Left button is reserved for building; right orbits, middle pans.
-const MOUSE_BUTTONS = { LEFT: null, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE } as unknown as {
-  LEFT: MOUSE;
-  MIDDLE: MOUSE;
-  RIGHT: MOUSE;
-};
-// One finger taps to build; two fingers orbit and pinch-zoom.
-const TOUCHES = { ONE: null, TWO: TOUCH.DOLLY_ROTATE } as unknown as { ONE: TOUCH; TWO: TOUCH };
 
 export default function StudioScene(props: SceneProps) {
   const size = SIZE;
@@ -63,17 +55,7 @@ export default function StudioScene(props: SceneProps) {
         <Workspace {...props} />
       </group>
 
-      <OrbitControls
-        makeDefault
-        enableDamping
-        dampingFactor={0.12}
-        maxPolarAngle={Math.PI / 2.08}
-        minDistance={4}
-        maxDistance={size * 2.6}
-        mouseButtons={MOUSE_BUTTONS}
-        touches={TOUCHES}
-      />
-      <CameraRig size={size} nonce={props.viewNonce} />
+      <StudioCamera size={size} mode={props.viewMode} resetNonce={props.viewNonce} turn={props.viewTurn} />
     </Canvas>
   );
 }
