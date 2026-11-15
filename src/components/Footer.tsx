@@ -20,7 +20,7 @@ export default function Footer() {
           <Cell label="PROJECT" className="border-b sm:border-r">BUILDER&rsquo;S BENCH</Cell>
           <Cell label="GRID" className="border-b lg:border-r">24×24 STUD</Cell>
           <Cell label="SCALE" className="border-b sm:border-r">1:1</Cell>
-          <Cell label="REVISION" className="border-b">1.0 — INITIAL ISSUE</Cell>
+          <Cell label="REVISION" className="border-b">BETA</Cell>
           <div className="px-4 py-3 sm:col-span-2 lg:col-span-4">
             <p className="font-mono text-[9px] tracking-[0.2em] text-ink-faint">FAIR PLAY NOTICE</p>
             <p className="mt-1 text-xs leading-relaxed text-ink-soft">

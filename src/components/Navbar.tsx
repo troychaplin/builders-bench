@@ -27,7 +27,7 @@ export default function Navbar() {
           <BrandMark />
           <span className="flex flex-col leading-none">
             <span className="font-display text-[15px] font-bold tracking-[0.04em]">BUILDER&rsquo;S BENCH</span>
-            <span className="mt-1 font-mono text-[10px] tracking-[0.18em] text-ink-soft">STUDIO // v1.0</span>
+            <span className="mt-1 font-mono text-[10px] tracking-[0.18em] text-ink-soft">STUDIO // beta</span>
           </span>
         </Link>
 

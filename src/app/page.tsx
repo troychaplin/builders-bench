@@ -5,7 +5,7 @@ import ModeCard from '@/components/ModeCard';
 import { BRICK_COLORS, BRICK_PARTS } from '@/data/brickCatalog';
 import { APP_MODES } from '@/data/modes';
 
-const SHEET_META = ['SHEET A-01', 'SCALE 1:1', 'STUD GRID 24×24', 'REV 1.0'];
+const SHEET_META = ['SHEET A-01', 'SCALE 1:1', 'STUD GRID 24×24', 'REV BETA'];
 
 export default function Home() {
   return (
