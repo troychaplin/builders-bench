@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { Vector3, type Object3D } from 'three';
 import { getColor, getPart } from '@/data/brickCatalog';
-import { BASEPLATE_SIZE, getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
+import { getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
 import { buildOccupancy, isSupportingOthers, resolvePlacement } from '@/lib/studio/occupancy';
 import { rotatedSize } from '@/lib/studio/footprint';
 import { activeSelection, type StudioAction, type StudioState } from '@/lib/studio/reducer';
@@ -51,10 +51,8 @@ interface SceneProps {
   onTouchPending?: (pending: TouchPending | null) => void;
 }
 
-const SIZE = BASEPLATE_SIZE;
-
 export default function StudioScene(props: SceneProps) {
-  const size = SIZE;
+  const size = props.state.project.baseplateSize;
 
   return (
     <Canvas
@@ -111,7 +109,7 @@ function Workspace({
 }: SceneProps) {
   const { project, rotation, tool } = state;
   const { partId, colorId } = activeSelection(state);
-  const size = SIZE;
+  const size = project.baseplateSize;
   const placingFigure = tool === 'figure' ? state.placingFigure : null;
   const placing = tool === 'place' || !!placingFigure;
   const part: BrickPart = placingFigure ? FIGURE_PART : getPart(partId)!;
@@ -137,8 +135,11 @@ function Workspace({
       ? selection.id
       : null;
 
+  // Catalog parts are shared, read-only objects, so `part` is stable for a given partId.
+  // The React Compiler can't prove that and would otherwise skip this component.
   const placement = useMemo(
     () => (anchor && placing ? resolvePlacement(occ, part, rotation, anchor.x, anchor.z, size) : null),
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     [anchor, placing, occ, part, rotation, size],
   );
 

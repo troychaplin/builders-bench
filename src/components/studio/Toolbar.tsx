@@ -16,8 +16,8 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { BASEPLATE_COLORS, getBaseplateColor } from '@/lib/studio/constants';
-import type { StudioAction, StudioState, Tool } from '@/lib/studio/reducer';
+import { BASEPLATE_COLORS, BASEPLATE_SIZES, getBaseplateColor } from '@/lib/studio/constants';
+import { canResizeTo, type StudioAction, type StudioState, type Tool } from '@/lib/studio/reducer';
 import { CARTRIDGE_EXT } from '@/lib/studio/share';
 
 const TOOLS: { id: Tool; label: string; key: string; icon: typeof Plus }[] = [
@@ -140,6 +140,25 @@ export default function Toolbar({
       </IconButton>
 
       <Divider />
+
+      <label className="flex h-9 items-center px-1" title="Baseplate size">
+        <span className="sr-only">Baseplate size</span>
+        <select
+          value={project.baseplateSize}
+          onChange={(e) => dispatch({ type: 'setBaseplateSize', size: Number(e.target.value) })}
+          className="border border-ink/15 bg-white px-1.5 py-1 font-mono text-[11px] text-ink focus-visible:outline-2 focus-visible:outline-cobalt"
+        >
+          {BASEPLATE_SIZES.map((size) => {
+            const fits = size === project.baseplateSize || canResizeTo(project, size);
+            return (
+              <option key={size} value={size} disabled={!fits}>
+                {size}×{size}
+                {fits ? '' : ' (build too big)'}
+              </option>
+            );
+          })}
+        </select>
+      </label>
 
       <div className="flex h-9 items-center gap-1 px-1.5" role="radiogroup" aria-label={`Baseplate color: ${plate.name}`}>
         {BASEPLATE_COLORS.map((c) => {

@@ -9,7 +9,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 | Route | Module | What it does |
 | --- | --- | --- |
 | `/` | **Workbench Hub** | Blueprint-style landing page with an interactive isometric preview and links to every module. |
-| `/studio` | **BuildBin Studio** | Free-build on a 24×24 stud baseplate in 3D. |
+| `/studio` | **BuildBin Studio** | Free-build in 3D on a baseplate from 16×16 to 64×64 studs. |
 | `/kits` | **Guided Kits** | Assemble micro-kits step by step, or turn any studio build into a kit. |
 | `/figure-lab` | **Figure Lab** | Mix and match block figure parts, generate a Builder ID card, and place heroes in the studio. |
 | `/sets` | **Set Explorer** | Search, filter and compare brick sets, and keep a portable dream wish list. |
@@ -20,6 +20,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 - Eighteen procedurally modeled parts (bricks, plates, tiles, slopes, a round stud, a window, a wheel and axle) in 27 colors, including transparent and metallic finishes.
 - Six quick-access **BuildBins** and a color bar along the bottom, filled from a parts drawer with preset kits (Starter Mix, Space Cruiser Parts, Castle Masonry).
 - **My Figures** drawer for placing saved Figure Lab heroes onto the baseplate.
+- Baseplate sizes from 16×16 to 64×64 studs (24×24 by default). Resizing keeps the build centred and can be undone; sizes too small for the build are disabled.
 - Eraser and paint tools, 90° clockwise rotation, 100-step undo/redo, four baseplate colors, and synthesized Web Audio snap sounds.
 - **Saving:** autosave to `localStorage`, `.brick.json` cartridge export and import (including drag-and-drop), and compressed `#build=` share links.
 

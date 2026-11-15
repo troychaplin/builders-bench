@@ -10,7 +10,7 @@ import CameraRig from '@/components/three/CameraRig';
 import SceneLighting from '@/components/three/SceneLighting';
 import Baseplate from '@/components/studio/Baseplate';
 import BrickMesh from '@/components/studio/BrickMesh';
-import { BASEPLATE_SIZE, getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
+import { getBaseplateColor, normalizeBaseplateSize, UNIT_H } from '@/lib/studio/constants';
 import { brickMaterial } from '@/lib/studio/three';
 
 export const DROP_MS = 340;
@@ -27,7 +27,8 @@ interface KitSceneProps {
 }
 
 export default function KitScene({ project, placed, current, dropping, celebrating, onSnap, viewNonce }: KitSceneProps) {
-  const size = BASEPLATE_SIZE;
+  // Built-in kits are 24×24; custom kits from the studio can be any supported size.
+  const size = normalizeBaseplateSize(project.baseplateSize);
   const plate = getBaseplateColor(project.baseplateColor);
 
   // Aim the camera at the middle of the finished model.
@@ -60,7 +61,7 @@ export default function KitScene({ project, placed, current, dropping, celebrati
         autoRotate={celebrating}
         autoRotateSpeed={9}
       />
-      <CameraRig size={16} nonce={viewNonce} targetY={targetY} />
+      <CameraRig size={Math.round(size * 0.67)} nonce={viewNonce} targetY={targetY} />
     </Canvas>
   );
 }

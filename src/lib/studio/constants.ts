@@ -4,7 +4,15 @@ export const STUD_RADIUS = 0.3;
 export const STUD_HEIGHT = 0.18;
 export const GAP = 0.02; // visual seam between neighbouring bricks
 
-export const BASEPLATE_SIZE = 24;
+/** Baseplate sizes the studio offers, in studs per side. */
+export const BASEPLATE_SIZES = [16, 24, 32, 48, 64] as const;
+export const DEFAULT_BASEPLATE_SIZE = 24;
+/** Fixed size used by the built-in guided kits. */
+export const BASEPLATE_SIZE = DEFAULT_BASEPLATE_SIZE;
+
+export function normalizeBaseplateSize(size: unknown): number {
+  return (BASEPLATE_SIZES as readonly number[]).includes(size as number) ? (size as number) : DEFAULT_BASEPLATE_SIZE;
+}
 
 export interface BaseplateColor {
   id: string;

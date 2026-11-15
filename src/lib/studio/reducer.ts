@@ -1,15 +1,17 @@
 import type { BlockFigure, BrickRotation, BuildProject, PlacedBrick, PlacedFigure } from '@/types/brick';
-import { BASEPLATE_SIZE, DEFAULT_BASEPLATE_COLOR, HISTORY_LIMIT } from './constants';
+import { DEFAULT_BASEPLATE_COLOR, DEFAULT_BASEPLATE_SIZE, HISTORY_LIMIT, normalizeBaseplateSize } from './constants';
+import { resizeLayout } from './resize';
 import { DEFAULT_BINS, type BuildBin } from './bins';
 import { nextRotation } from './footprint';
 import { newInstanceId } from './share';
 
 export type Tool = 'place' | 'erase' | 'paint' | 'figure';
 
-/** What undo/redo restores: every piece on the baseplate. */
+/** What undo/redo restores: every piece on the baseplate, and the baseplate's size. */
 export interface Snapshot {
   bricks: PlacedBrick[];
   figures: PlacedFigure[];
+  baseplateSize: number;
 }
 
 export interface StudioState {
@@ -42,6 +44,7 @@ export type StudioAction =
   | { type: 'setTool'; tool: Tool }
   | { type: 'toggleTool'; tool: Exclude<Tool, 'place'> }
   | { type: 'setBaseplateColor'; colorId: string }
+  | { type: 'setBaseplateSize'; size: number }
   | { type: 'setTitle'; title: string };
 
 export function newProject(): BuildProject {
@@ -50,7 +53,7 @@ export function newProject(): BuildProject {
     title: 'Untitled Build',
     author: 'Anonymous',
     createdAt: new Date().toISOString(),
-    baseplateSize: BASEPLATE_SIZE,
+    baseplateSize: DEFAULT_BASEPLATE_SIZE,
     baseplateColor: DEFAULT_BASEPLATE_COLOR,
     bricks: [],
   };
@@ -77,10 +80,15 @@ export function createInitialState({
 
 export const activeSelection = (s: StudioState): BuildBin => s.bins[s.activeBin];
 
-const snapshot = (p: BuildProject): Snapshot => ({ bricks: p.bricks, figures: p.figures ?? [] });
+const snapshot = (p: BuildProject): Snapshot => ({ bricks: p.bricks, figures: p.figures ?? [], baseplateSize: p.baseplateSize });
 
 function apply(project: BuildProject, snap: Snapshot): BuildProject {
-  return { ...project, bricks: snap.bricks, figures: snap.figures };
+  return { ...project, bricks: snap.bricks, figures: snap.figures, baseplateSize: snap.baseplateSize };
+}
+
+/** Whether the current build fits on a baseplate of this size. */
+export function canResizeTo(project: BuildProject, size: number): boolean {
+  return resizeLayout(project.bricks, project.figures ?? [], project.baseplateSize, size) !== null;
 }
 
 /** Replace the pieces on the baseplate as one undoable step. */
@@ -178,6 +186,14 @@ export function studioReducer(state: StudioState, action: StudioAction): StudioS
 
     case 'toggleTool':
       return { ...state, tool: state.tool === action.tool ? 'place' : action.tool };
+
+    case 'setBaseplateSize': {
+      const size = normalizeBaseplateSize(action.size);
+      if (size === state.project.baseplateSize) return state;
+      const moved = resizeLayout(bricks, figures, state.project.baseplateSize, size);
+      if (!moved) return state; // build doesn't fit
+      return commit(state, { ...moved, baseplateSize: size });
+    }
 
     case 'setBaseplateColor':
       return { ...state, project: { ...state.project, baseplateColor: action.colorId } };
