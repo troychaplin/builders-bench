@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import ModePlaceholder from '@/components/ModePlaceholder';
-import { getMode } from '@/data/modes';
+import SetExplorerClient from '@/components/sets/SetExplorerClient';
 
-const mode = getMode('/sets');
-
-export const metadata: Metadata = { title: mode.title };
+export const metadata: Metadata = {
+  title: 'Set Explorer',
+  description: 'Search and compare brick sets by theme, year and piece count, and keep a portable dream set wish list.',
+};
 
 export default function SetsPage() {
-  return <ModePlaceholder mode={mode} />;
+  return <SetExplorerClient />;
 }

@@ -56,7 +56,7 @@ export const APP_MODES: AppMode[] = [
     title: 'Set Explorer',
     tagline: 'Browse the encyclopedia',
     description: 'Search and filter a catalog of sets by theme, era, and piece count.',
-    status: 'upcoming',
+    status: 'active',
     phase: 4,
   },
 ];
