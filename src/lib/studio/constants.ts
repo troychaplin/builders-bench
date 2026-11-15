@@ -21,10 +21,19 @@ export interface BaseplateColor {
 }
 
 export const BASEPLATE_COLORS: BaseplateColor[] = [
+  // Ids are saved in builds and share links, so keep existing ones stable; unknown ids fall back to the first.
   { id: 'forest-green', name: 'Forest Green', hex: '#237841' },
+  { id: 'bright-green', name: 'Bright Green', hex: '#4B9F4A' },
+  { id: 'sand-green', name: 'Sand Green', hex: '#A0BCAC' },
   { id: 'desert-tan', name: 'Desert Tan', hex: '#C9B08A' },
+  { id: 'dark-tan', name: 'Dark Tan', hex: '#958A73' },
+  { id: 'reddish-brown', name: 'Reddish Brown', hex: '#582A12' },
+  { id: 'pure-white', name: 'Pure White', hex: '#F4F4F4' },
   { id: 'stone-gray', name: 'Stone Gray', hex: '#A0A5A9' },
+  { id: 'dark-stone-gray', name: 'Dark Stone Gray', hex: '#6C6E68' },
   { id: 'deep-space-black', name: 'Deep Space Black', hex: '#1E2329' },
+  { id: 'ocean-blue', name: 'Ocean Blue', hex: '#0055BF' },
+  { id: 'medium-azure', name: 'Medium Azure', hex: '#36AEBF' },
 ];
 
 export const DEFAULT_BASEPLATE_COLOR = 'forest-green';
@@ -38,4 +47,5 @@ export const MAX_HEIGHT_UNITS = 90;
 
 export const HISTORY_LIMIT = 100;
 
-export const BIN_COUNT = 6;
+/** How many recently used blocks and colours to keep (keys 1–6 pick blocks). */
+export const RECENT_COUNT = 6;

@@ -49,7 +49,7 @@ const MAX_POLAR_3D = Math.PI / 2.08; // just above the plate
 const MIN_TILT_POLAR = Math.PI / 12; // 15° from vertical; 2D view covers straight overhead
 const PAN_STEP = 0.125; // fraction of the plate per step
 
-/** Orthographic zoom that fits the whole baseplate, leaving room for the toolbar and BuildBins. */
+/** Orthographic zoom that fits the whole baseplate, leaving room for the top bar and tool rail. */
 function useFitZoom(size: number) {
   const viewport = useThree((s) => s.size);
   return Math.min(viewport.width, viewport.height) / (size * 1.45);

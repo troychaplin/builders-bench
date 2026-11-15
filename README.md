@@ -18,10 +18,12 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 
 - Stud-snapping placement with a translucent preview that turns red where a piece can't go. The rules block overlapping, floating, and stacking on tiles, slopes or figures.
 - Eighteen procedurally modeled parts (bricks, plates, tiles, slopes, a round stud, a window, a wheel and axle) in 27 colors, including transparent and metallic finishes.
-- Six quick-access **BuildBins** and a color bar along the bottom, filled from a parts drawer with preset kits (Starter Mix, Space Cruiser Parts, Castle Masonry).
-- **My Figures** drawer for placing saved Figure Lab heroes onto the baseplate.
+- A floating **tool rail** with Blocks, Figures, Colour, Paint, Eraser, Rotate, Baseplate and Clear. It sits on the left on desktop and along the bottom on phones.
+- A **Blocks** browser with search, categories and thumbnails. A **Recent** strip keeps the last six blocks you placed, and keys 1–6 pick from it.
+- A **colour picker** with recent colours, then every colour grouped as solid, transparent or metallic.
+- A **Figures** panel for placing saved Figure Lab heroes onto the baseplate.
 - Baseplate sizes from 16×16 to 64×64 studs (24×24 by default). Resizing keeps the build centred and can be undone; sizes too small for the build are disabled.
-- Eraser and paint tools, 90° clockwise rotation, 100-step undo/redo, four baseplate colors, and synthesized Web Audio snap sounds.
+- Eraser and paint tools, 90° clockwise rotation, 100-step undo/redo, twelve baseplate colours (including white), and synthesized Web Audio snap sounds.
 - **Saving:** autosave to `localStorage`, `.brick.json` cartridge export and import (including drag-and-drop), and compressed `#build=` share links.
 
 ### Guided Kits
@@ -85,14 +87,19 @@ Because there's no server, the export can't include route handlers or Next's ima
 | --- | --- |
 | Left-click | Place, erase or paint (depending on the tool) |
 | Right-drag / two-finger drag | Orbit the camera |
-| Middle-drag | Pan |
+| Middle-drag / arrow keys | Pan |
 | Scroll / pinch | Zoom |
-| `1`–`6` | Pick a BuildBin |
+| `B` | Open the Blocks browser |
+| `C` | Open the colour picker |
+| `1`–`6` | Pick a recent block |
+| `V` | Toggle 3D / top-down 2D view |
+| `Q` / `E` | Rotate the baseplate view left / right |
+| `W` / `S` | Tilt the 3D view up / down |
 | `R` | Rotate 90° clockwise |
 | `X` | Toggle eraser |
 | `P` | Toggle paint |
-| `F` | Open the My Figures drawer |
-| `Esc` | Back to building |
+| `F` | Open the Figures panel |
+| `Esc` | Close the open panel, or go back to building |
 | `⌘Z` / `⇧⌘Z` | Undo / redo |
 | `?` | Show the controls panel |
 
@@ -104,7 +111,7 @@ Because there's no server, the export can't include route handlers or Next's ima
 src/
 ├── app/                  Routes: /, /studio, /kits, /kits/[slug], /kits/play, /figure-lab, /sets
 ├── components/
-│   ├── studio/           3D scene, brick meshes, toolbar, BuildBins HUD, parts drawer
+│   ├── studio/           3D scene, brick meshes, top bar, tool rail, blocks and colour panels
 │   ├── kits/             Kit player, hologram scene, thumbnails, badges, confetti
 │   ├── figures/          BlockFigureMesh, SVG FigureIcon, Figure Lab, ID card
 │   ├── sets/             Set Explorer, comparison and wish list modals, range slider

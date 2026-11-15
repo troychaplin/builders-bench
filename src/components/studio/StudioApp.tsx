@@ -4,15 +4,19 @@ import { useCallback, useEffect, useReducer, useState, type DragEvent } from 're
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, RotateCcwSquare, RotateCw, RotateCwSquare, Square, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
-import { BIN_COUNT } from '@/lib/studio/constants';
+import { RECENT_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
 import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartridge, readHashProject, shareUrl } from '@/lib/studio/share';
-import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
-import BinsHud from './BinsHud';
-import PartsDrawer, { type DrawerTab } from './PartsDrawer';
+import { loadAutosave, loadPalette, loadSoundEnabled, saveAutosave, savePalette, saveSoundEnabled } from '@/lib/studio/storage';
+import BaseplatePopover from './BaseplatePopover';
+import BlocksPanel from './BlocksPanel';
+import ColorPopover from './ColorPopover';
+import FiguresPanel from './FiguresPanel';
+import Flyout, { type StudioPanel } from './Flyout';
 import type { ViewMode, ViewPan, ViewTilt, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo, type TouchPending } from './StudioScene';
 import Toolbar from './Toolbar';
+import ToolRail from './ToolRail';
 
 const SHORTCUTS: [string, string][] = [
   ['Left-click', 'Place / erase / paint'],
@@ -20,26 +24,28 @@ const SHORTCUTS: [string, string][] = [
   ['Middle-drag', 'Pan'],
   ['Arrow keys', 'Pan view'],
   ['Scroll', 'Zoom'],
+  ['B', 'Blocks'],
+  ['C', 'Colour'],
+  ['F', 'Figures'],
+  ['1 – 6', 'Recent blocks'],
   ['V', 'Toggle 3D / 2D view'],
   ['Q / E', 'Rotate baseplate left / right'],
   ['W / S', 'Tilt view up / down (3D)'],
-  ['1 – 6', 'Pick a BuildBin'],
   ['R', 'Rotate 90° clockwise'],
   ['X', 'Toggle eraser'],
   ['P', 'Toggle paint'],
-  ['F', 'My Figures drawer'],
-  ['Esc', 'Back to building'],
+  ['Esc', 'Close panel / back to building'],
   ['⌘Z', 'Undo'],
   ['⇧⌘Z', 'Redo'],
 ];
 
 /** Decide what to open: a shared link wins over the autosave. Runs once, client-only. */
 function boot() {
-  const bins = loadBins();
+  const palette = loadPalette();
   const sound = loadSoundEnabled();
   const shared = readHashProject();
-  if (shared) return { project: shared, bins, sound, notice: `Loaded shared build “${shared.title}”.` };
-  return { project: loadAutosave(), bins, sound, notice: null };
+  if (shared) return { project: shared, palette, sound, notice: `Loaded shared build “${shared.title}”.` };
+  return { project: loadAutosave(), palette, sound, notice: null };
 }
 
 export default function StudioApp() {
@@ -49,8 +55,9 @@ export default function StudioApp() {
   const [notice, setNotice] = useState<string | null>(initial.notice);
   const [sound, setSound] = useState(initial.sound);
   const [showKeys, setShowKeys] = useState(false);
-  const [drawerTab, setDrawerTab] = useState<DrawerTab | null>(null);
-  const drawerOpen = drawerTab !== null;
+  const [panel, setPanel] = useState<StudioPanel | null>(null);
+  const togglePanel = useCallback((p: StudioPanel) => setPanel((cur) => (cur === p ? null : p)), []);
+  const closePanel = useCallback(() => setPanel(null), []);
   const [dragging, setDragging] = useState(false);
   const [viewNonce, setViewNonce] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
@@ -65,15 +72,15 @@ export default function StudioApp() {
   const [usingTouch, setUsingTouch] = useState(false);
   const [placement, setPlacement] = useState<PlacementInfo | null>(null);
 
-  const { project, bins, rotation } = state;
+  const { project, palette, rotation } = state;
 
-  // Autosave (debounced) and bin persistence.
+  // Autosave (debounced) and palette persistence.
   useEffect(() => {
     const t = window.setTimeout(() => saveAutosave(project), 400);
     return () => window.clearTimeout(t);
   }, [project]);
 
-  useEffect(() => saveBins(bins), [bins]);
+  useEffect(() => savePalette(palette), [palette]);
 
   // Auto-dismiss notices.
   useEffect(() => {
@@ -94,9 +101,8 @@ export default function StudioApp() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Keyboard shortcuts (paused while the drawer is open).
+  // Keyboard shortcuts. An open panel handles Esc itself.
   useEffect(() => {
-    if (drawerOpen) return;
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))) return;
@@ -111,11 +117,15 @@ export default function StudioApp() {
         dispatch({ type: 'redo' });
       } else if (!mod && !e.altKey) {
         const n = Number(k);
-        if (Number.isInteger(n) && n >= 1 && n <= BIN_COUNT) dispatch({ type: 'selectBin', index: n - 1 });
+        if (Number.isInteger(n) && n >= 1 && n <= RECENT_COUNT) dispatch({ type: 'selectRecent', index: n - 1 });
         else if (k === 'r') dispatch({ type: 'rotate' });
         else if (k === 'x' || k === 'delete') dispatch({ type: 'toggleTool', tool: 'erase' });
         else if (k === 'p') dispatch({ type: 'toggleTool', tool: 'paint' });
-        else if (k === 'f') setDrawerTab('figures');
+        else if (k === 'b' || k === 'c' || k === 'f') {
+          // Stop the key from also typing into the search field the panel focuses.
+          e.preventDefault();
+          togglePanel(k === 'b' ? 'blocks' : k === 'c' ? 'color' : 'figures');
+        }
         else if (k === 'v') setViewMode((m) => (m === '3d' ? '2d' : '3d'));
         else if (k === 'q') setViewTurn((t) => ({ id: t.id + 1, dir: -1 }));
         else if (k === 'e') setViewTurn((t) => ({ id: t.id + 1, dir: 1 }));
@@ -133,10 +143,9 @@ export default function StudioApp() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [drawerOpen, panView]);
+  }, [panView, togglePanel]);
 
   const notify = useCallback((message: string) => setNotice(message), []);
-  const closeDrawer = useCallback(() => setDrawerTab(null), []);
 
   async function handleShare() {
     const url = shareUrl(project);
@@ -234,9 +243,14 @@ export default function StudioApp() {
         {notice && <p className="border border-ink/15 bg-ink px-3 py-2 text-xs font-medium text-white shadow-lg">{notice}</p>}
       </div>
 
-      {/* Bottom HUD: status, bins, shortcuts */}
-      <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-col items-center gap-2">
-        <div className="flex w-full max-w-3xl flex-wrap items-end justify-between gap-2">
+      {/* Tool rail: floating on the left on desktop, along the bottom on phones */}
+      <div className="pointer-events-none absolute inset-x-3 bottom-3 flex justify-center md:inset-x-auto md:bottom-auto md:left-3 md:top-1/2 md:-translate-y-1/2">
+        <ToolRail state={state} dispatch={dispatch} panel={panel} onPanel={togglePanel} />
+      </div>
+
+      {/* Bottom HUD: status, view controls, shortcuts, touch confirm */}
+      <div className="pointer-events-none absolute inset-x-3 bottom-[4.25rem] flex flex-col items-center gap-2 md:bottom-3 md:left-[4.5rem]">
+        <div className="flex w-full flex-wrap items-end justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-ink/15 bg-white/90 px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft backdrop-blur">
             <span>
               BRICKS <span className="text-ink">{project.bricks.length}</span>
@@ -312,9 +326,6 @@ export default function StudioApp() {
           />
         )}
 
-        <div className="pointer-events-auto flex w-full justify-center">
-          <BinsHud state={state} dispatch={dispatch} onOpenDrawer={() => setDrawerTab('bins')} onOpenFigures={() => setDrawerTab('figures')} />
-        </div>
       </div>
 
       {/* Drop zone overlay */}
@@ -326,7 +337,26 @@ export default function StudioApp() {
         </div>
       )}
 
-      {drawerTab && <PartsDrawer state={state} dispatch={dispatch} onClose={closeDrawer} initialTab={drawerTab} />}
+      {panel === 'blocks' && (
+        <Flyout title="Blocks" onClose={closePanel}>
+          <BlocksPanel state={state} dispatch={dispatch} onPicked={closePanel} />
+        </Flyout>
+      )}
+      {panel === 'figures' && (
+        <Flyout title="Figures" onClose={closePanel}>
+          <FiguresPanel state={state} dispatch={dispatch} onPicked={closePanel} />
+        </Flyout>
+      )}
+      {panel === 'color' && (
+        <Flyout title="Colour" onClose={closePanel}>
+          <ColorPopover state={state} dispatch={dispatch} onPicked={closePanel} />
+        </Flyout>
+      )}
+      {panel === 'baseplate' && (
+        <Flyout title="Baseplate" onClose={closePanel}>
+          <BaseplatePopover state={state} dispatch={dispatch} />
+        </Flyout>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ export default function PartThumb({
 }: {
   part: BrickPart;
   className?: string;
-  /** Body fill, e.g. the bin's brick color. */
+  /** Body fill, e.g. the selected brick colour. */
   fill?: string;
 }) {
   const transpose = part.depthStuds > part.widthStuds;

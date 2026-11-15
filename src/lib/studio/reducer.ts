@@ -1,7 +1,6 @@
 import type { BlockFigure, BrickRotation, BuildProject, PlacedBrick, PlacedFigure } from '@/types/brick';
-import { DEFAULT_BASEPLATE_COLOR, DEFAULT_BASEPLATE_SIZE, HISTORY_LIMIT, normalizeBaseplateSize } from './constants';
+import { DEFAULT_BASEPLATE_COLOR, DEFAULT_BASEPLATE_SIZE, HISTORY_LIMIT, RECENT_COUNT, normalizeBaseplateSize } from './constants';
 import { resizeLayout } from './resize';
-import { DEFAULT_BINS, type BuildBin } from './bins';
 import { nextRotation } from './footprint';
 import { newInstanceId } from './share';
 
@@ -14,10 +13,25 @@ export interface Snapshot {
   baseplateSize: number;
 }
 
+/** The block and colour being built with, plus what was used most recently. */
+export interface Palette {
+  partId: string;
+  colorId: string;
+  /** Newest first, no duplicates, at most RECENT_COUNT. */
+  recentParts: string[];
+  recentColors: string[];
+}
+
+export const DEFAULT_PALETTE: Palette = {
+  partId: 'brick-2x4',
+  colorId: 'bright-red',
+  recentParts: ['brick-2x4', 'brick-2x2', 'brick-1x2', 'plate-2x4', 'slope-45-2x2', 'brick-1x1'],
+  recentColors: ['bright-red', 'bright-blue', 'bright-yellow', 'forest-green', 'pure-white', 'obsidian-black'],
+};
+
 export interface StudioState {
   project: BuildProject;
-  bins: BuildBin[];
-  activeBin: number;
+  palette: Palette;
   rotation: BrickRotation;
   tool: Tool;
   /** The saved figure being placed while tool === 'figure'. */
@@ -36,9 +50,8 @@ export type StudioAction =
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'load'; project: BuildProject }
-  | { type: 'selectBin'; index: number }
-  | { type: 'setBin'; index: number; bin: Partial<BuildBin> }
-  | { type: 'loadBins'; bins: BuildBin[] }
+  | { type: 'selectPart'; partId: string }
+  | { type: 'selectRecent'; index: number }
   | { type: 'setColor'; colorId: string }
   | { type: 'rotate' }
   | { type: 'setTool'; tool: Tool }
@@ -61,15 +74,14 @@ export function newProject(): BuildProject {
 
 export function createInitialState({
   project,
-  bins,
+  palette,
 }: {
   project?: BuildProject | null;
-  bins?: BuildBin[];
+  palette?: Palette;
 }): StudioState {
   return {
     project: project ?? newProject(),
-    bins: bins ?? DEFAULT_BINS,
-    activeBin: 0,
+    palette: palette ?? DEFAULT_PALETTE,
     rotation: 0,
     tool: 'place',
     placingFigure: null,
@@ -78,7 +90,15 @@ export function createInitialState({
   };
 }
 
-export const activeSelection = (s: StudioState): BuildBin => s.bins[s.activeBin];
+export const activeSelection = (s: StudioState): { partId: string; colorId: string } => ({
+  partId: s.palette.partId,
+  colorId: s.palette.colorId,
+});
+
+/** Move `id` to the front of a recents list. */
+export function pushRecent(list: string[], id: string): string[] {
+  return [id, ...list.filter((x) => x !== id)].slice(0, RECENT_COUNT);
+}
 
 const snapshot = (p: BuildProject): Snapshot => ({ bricks: p.bricks, figures: p.figures ?? [], baseplateSize: p.baseplateSize });
 
@@ -107,8 +127,18 @@ export function studioReducer(state: StudioState, action: StudioAction): StudioS
   const figures = state.project.figures ?? [];
 
   switch (action.type) {
-    case 'place':
-      return commit(state, { bricks: [...bricks, action.brick] });
+    case 'place': {
+      const next = commit(state, { bricks: [...bricks, action.brick] });
+      const { palette } = state;
+      return {
+        ...next,
+        palette: {
+          ...palette,
+          recentParts: pushRecent(palette.recentParts, action.brick.partId),
+          recentColors: pushRecent(palette.recentColors, action.brick.colorId),
+        },
+      };
+    }
 
     case 'placeFigure':
       return commit(state, { figures: [...figures, action.figure] });
@@ -158,23 +188,18 @@ export function studioReducer(state: StudioState, action: StudioAction): StudioS
     case 'load':
       return { ...state, project: action.project, past: [], future: [] };
 
-    case 'selectBin':
-      return { ...state, activeBin: action.index, tool: 'place' };
+    case 'selectPart':
+      return { ...state, palette: { ...state.palette, partId: action.partId }, tool: 'place' };
 
-    case 'setBin':
-      return {
-        ...state,
-        bins: state.bins.map((b, i) => (i === action.index ? { ...b, ...action.bin } : b)),
-      };
-
-    case 'loadBins':
-      return { ...state, bins: action.bins, activeBin: 0, tool: 'place' };
+    case 'selectRecent': {
+      const partId = state.palette.recentParts[action.index];
+      return partId ? { ...state, palette: { ...state.palette, partId }, tool: 'place' } : state;
+    }
 
     case 'setColor':
-      // The color bar recolors the active bin, so the HUD always shows what you're placing.
       return {
         ...state,
-        bins: state.bins.map((b, i) => (i === state.activeBin ? { ...b, colorId: action.colorId } : b)),
+        palette: { ...state.palette, colorId: action.colorId, recentColors: pushRecent(state.palette.recentColors, action.colorId) },
         tool: state.tool === 'erase' || state.tool === 'figure' ? 'place' : state.tool,
       };
 

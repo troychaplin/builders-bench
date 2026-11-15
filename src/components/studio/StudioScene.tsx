@@ -108,6 +108,7 @@ function Workspace({
   aimEpoch,
   commitEpoch,
   onTouchPending,
+  viewMode,
 }: SceneProps) {
   const { project, rotation, tool } = state;
   const { partId, colorId } = activeSelection(state);
@@ -322,7 +323,7 @@ function Workspace({
   return (
     <>
       <group onPointerDown={handlePointerDown} onPointerMove={handleMove} onPointerOut={handleOut} onClick={handleClick}>
-        <Baseplate size={size} color={getBaseplateColor(project.baseplateColor).hex} />
+        <Baseplate size={size} color={getBaseplateColor(project.baseplateColor).hex} studOutlines={viewMode === '2d'} />
         {project.bricks.map((b) => {
           const bp = getPart(b.partId);
           const bc = getColor(b.colorId);

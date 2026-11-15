@@ -1,57 +1,31 @@
 'use client';
 
-import { useRef, type Dispatch, type ReactNode } from 'react';
-import {
-  BookOpen,
-  Download,
-  Eraser,
-  FolderOpen,
-  PaintBucket,
-  Plus,
-  Redo2,
-  RotateCw,
-  Share2,
-  Trash2,
-  Undo2,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
-import { BASEPLATE_COLORS, BASEPLATE_SIZES, getBaseplateColor } from '@/lib/studio/constants';
-import { canResizeTo, type StudioAction, type StudioState, type Tool } from '@/lib/studio/reducer';
+import { useEffect, useRef, useState, type Dispatch, type ReactNode } from 'react';
+import { BookOpen, Download, FolderOpen, MoreHorizontal, Redo2, Share2, Undo2, Volume2, VolumeX } from 'lucide-react';
+import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import { CARTRIDGE_EXT } from '@/lib/studio/share';
-
-const TOOLS: { id: Tool; label: string; key: string; icon: typeof Plus }[] = [
-  { id: 'place', label: 'Build', key: 'Esc', icon: Plus },
-  { id: 'erase', label: 'Eraser', key: 'X', icon: Eraser },
-  { id: 'paint', label: 'Paint', key: 'P', icon: PaintBucket },
-];
 
 function IconButton({
   label,
   shortcut,
   onClick,
   disabled,
-  active,
   children,
 }: {
   label: string;
   shortcut?: string;
   onClick: () => void;
   disabled?: boolean;
-  active?: boolean;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
       aria-label={label}
-      aria-pressed={active}
       title={shortcut ? `${label} (${shortcut})` : label}
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt disabled:cursor-not-allowed disabled:opacity-35 ${
-        active ? 'bg-ink text-white' : 'text-ink-soft hover:bg-slate-100 hover:text-ink'
-      }`}
+      className="flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-slate-100 hover:text-ink focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
     </button>
@@ -71,128 +45,93 @@ interface ToolbarProps {
   onPlayAsKit: () => void;
 }
 
-export default function Toolbar({
-  state,
-  dispatch,
-  sound,
-  onToggleSound,
-  onShare,
-  onDownload,
-  onLoadFile,
-  onPlayAsKit,
-}: ToolbarProps) {
-  const { tool, rotation, past, future, project } = state;
-  const plate = getBaseplateColor(project.baseplateColor);
-  const pieceCount = project.bricks.length + (project.figures?.length ?? 0);
+/** Slim top bar: the build's name, history, file actions and sharing. Tools live in the rail. */
+export default function Toolbar({ state, dispatch, sound, onToggleSound, onShare, onDownload, onLoadFile, onPlayAsKit }: ToolbarProps) {
+  const { past, future, project } = state;
   const fileRef = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onDown(e: PointerEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [menuOpen]);
+
+  const fileActions = [
+    { id: 'save', label: 'Save to file', icon: Download, disabled: false },
+    { id: 'open', label: 'Open file', icon: FolderOpen, disabled: false },
+    { id: 'kit', label: 'Play as Guided Kit', icon: BookOpen, disabled: !project.bricks.length },
+    { id: 'sound', label: sound ? 'Mute sounds' : 'Unmute sounds', icon: sound ? Volume2 : VolumeX, disabled: false },
+  ] as const;
+
+  function run(id: (typeof fileActions)[number]['id']) {
+    if (id === 'save') onDownload();
+    else if (id === 'open') fileRef.current?.click();
+    else if (id === 'kit') onPlayAsKit();
+    else onToggleSound();
+  }
 
   return (
-    <div className="flex flex-wrap items-center gap-y-1 border border-ink/15 bg-white/95 px-1 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] backdrop-blur">
+    <div className="flex items-center border border-ink/15 bg-white/95 px-1 shadow-[0_8px_24px_-16px_rgba(15,23,42,0.35)] backdrop-blur">
       <label className="flex h-9 min-w-0 items-center px-2">
         <span className="sr-only">Build title</span>
         <input
           value={project.title}
           onChange={(e) => dispatch({ type: 'setTitle', title: e.target.value })}
-          className="w-36 min-w-0 border-b border-transparent bg-transparent font-display text-sm font-bold tracking-tight outline-none transition-colors hover:border-ink/20 focus:border-cobalt lg:w-44"
+          className="w-28 min-w-0 border-b border-transparent bg-transparent font-display text-sm font-bold tracking-tight outline-none transition-colors hover:border-ink/20 focus:border-cobalt sm:w-40 lg:w-48"
         />
       </label>
 
+      {/* On desktop, undo and redo live in the tool rail. */}
+      <div className="flex items-center md:hidden">
+        <Divider />
+        <IconButton label="Undo" shortcut="⌘Z" disabled={!past.length} onClick={() => dispatch({ type: 'undo' })}>
+          <Undo2 className="h-4 w-4" />
+        </IconButton>
+        <IconButton label="Redo" shortcut="⇧⌘Z" disabled={!future.length} onClick={() => dispatch({ type: 'redo' })}>
+          <Redo2 className="h-4 w-4" />
+        </IconButton>
+      </div>
+
       <Divider />
 
-      <div role="toolbar" aria-label="Tools" className="flex items-center">
-        {TOOLS.map(({ id, label, key, icon: Icon }) => (
-          <IconButton
-            key={id}
-            label={label}
-            shortcut={key}
-            active={tool === id}
-            onClick={() => dispatch({ type: 'setTool', tool: id })}
-          >
+      {/* File actions inline from sm up; behind a menu on phones. */}
+      <div className="hidden items-center sm:flex">
+        {fileActions.map(({ id, label, icon: Icon, disabled }) => (
+          <IconButton key={id} label={label} onClick={() => run(id)} disabled={disabled}>
             <Icon className="h-4 w-4" />
-            <span className="hidden 2xl:inline">{label}</span>
+            {id === 'kit' && <span className="hidden lg:inline">Play as Kit</span>}
           </IconButton>
         ))}
       </div>
-
-      <IconButton label={`Rotate clockwise (currently ${rotation}°)`} shortcut="R" onClick={() => dispatch({ type: 'rotate' })}>
-        <RotateCw className="h-4 w-4" />
-        <span className="w-7 text-left font-mono text-[11px] tabular-nums">{rotation}°</span>
-      </IconButton>
-
-      <Divider />
-
-      <IconButton label="Undo" shortcut="⌘Z" disabled={!past.length} onClick={() => dispatch({ type: 'undo' })}>
-        <Undo2 className="h-4 w-4" />
-      </IconButton>
-      <IconButton label="Redo" shortcut="⇧⌘Z" disabled={!future.length} onClick={() => dispatch({ type: 'redo' })}>
-        <Redo2 className="h-4 w-4" />
-      </IconButton>
-      <IconButton
-        label="Clear baseplate"
-        disabled={!pieceCount}
-        onClick={() => {
-          const what = project.figures?.length ? 'brick and figure' : 'brick';
-          if (window.confirm(`Clear every ${what} from the baseplate? You can undo this.`)) dispatch({ type: 'clear' });
-        }}
-      >
-        <Trash2 className="h-4 w-4" />
-        <span>Clear</span>
-      </IconButton>
-
-      <Divider />
-
-      <label className="flex h-9 items-center px-1" title="Baseplate size">
-        <span className="sr-only">Baseplate size</span>
-        <select
-          value={project.baseplateSize}
-          onChange={(e) => dispatch({ type: 'setBaseplateSize', size: Number(e.target.value) })}
-          className="border border-ink/15 bg-white px-1.5 py-1 font-mono text-[11px] text-ink focus-visible:outline-2 focus-visible:outline-cobalt"
-        >
-          {BASEPLATE_SIZES.map((size) => {
-            const fits = size === project.baseplateSize || canResizeTo(project, size);
-            return (
-              <option key={size} value={size} disabled={!fits}>
-                {size}×{size}
-                {fits ? '' : ' (build too big)'}
-              </option>
-            );
-          })}
-        </select>
-      </label>
-
-      <div className="flex h-9 items-center gap-1 px-1.5" role="radiogroup" aria-label={`Baseplate color: ${plate.name}`}>
-        {BASEPLATE_COLORS.map((c) => {
-          const selected = c.id === plate.id;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              aria-label={`${c.name} baseplate`}
-              title={`${c.name} baseplate`}
-              onClick={() => dispatch({ type: 'setBaseplateColor', colorId: c.id })}
-              className={`h-4 w-4 rounded-full border transition-transform hover:scale-110 ${
-                selected ? 'border-ink ring-2 ring-cobalt ring-offset-1' : 'border-ink/25'
-              }`}
-              style={{ backgroundColor: c.hex }}
-            />
-          );
-        })}
+      <div ref={menuRef} className="relative sm:hidden">
+        <IconButton label="More actions" onClick={() => setMenuOpen((o) => !o)}>
+          <MoreHorizontal className="h-4 w-4" />
+        </IconButton>
+        {menuOpen && (
+          <div role="menu" className="absolute right-0 top-10 z-40 w-48 border border-ink/15 bg-white py-1 shadow-lg">
+            {fileActions.map(({ id, label, icon: Icon, disabled }) => (
+              <button
+                key={id}
+                type="button"
+                role="menuitem"
+                disabled={disabled}
+                onClick={() => {
+                  setMenuOpen(false);
+                  run(id);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-soft hover:bg-slate-100 hover:text-ink disabled:opacity-35"
+              >
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-
-      <IconButton label={sound ? 'Mute sounds' : 'Unmute sounds'} active={false} onClick={onToggleSound}>
-        {sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-      </IconButton>
-
-      <Divider />
-
-      <IconButton label="Download build cartridge" onClick={onDownload}>
-        <Download className="h-4 w-4" />
-      </IconButton>
-      <IconButton label="Load build cartridge" onClick={() => fileRef.current?.click()}>
-        <FolderOpen className="h-4 w-4" />
-      </IconButton>
       <input
         ref={fileRef}
         type="file"
@@ -204,11 +143,6 @@ export default function Toolbar({
           e.target.value = '';
         }}
       />
-
-      <IconButton label="Play as Guided Kit" disabled={!project.bricks.length} onClick={onPlayAsKit}>
-        <BookOpen className="h-4 w-4" />
-        <span className="hidden xl:inline">Play as Kit</span>
-      </IconButton>
 
       <button
         type="button"
