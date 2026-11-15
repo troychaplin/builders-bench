@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Heart, RotateCcw, Scale, Search, X } from 'lucide-react';
-import type { BrickSet, SetQuery, SetSearchResponse, SetSort } from '@/types/set';
-import { MIN_YEAR, PIECE_STOPS, maxYear, parseQuery, pieceStopLabel, queryToParams } from '@/lib/sets/query';
+import type { BrickSet, SetQuery, SetSort } from '@/types/set';
+import { MIN_YEAR, PAGE_SIZE, PIECE_STOPS, SET_THEMES, filterSets, maxYear, parseQuery, pieceStopLabel, queryToParams } from '@/lib/sets/query';
 import { loadWishlist, mergeWishlists, saveWishlist } from '@/lib/sets/wishlist';
 import RangeSlider from './RangeSlider';
 import { SetImage, ThemeBadge, fmt } from './SetBits';
@@ -58,21 +58,11 @@ function toQuery(f: Filters, top: number): SetQuery {
   };
 }
 
-interface Loaded {
-  key: string;
-  page: number;
-  data: SetSearchResponse & { fallbackReason?: string };
-  items: BrickSet[];
-}
-
 export default function SetExplorer() {
   const [top] = useState(maxYear);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [searchInput, setSearchInput] = useState(filters.search);
   const [page, setPage] = useState(1);
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [themes, setThemes] = useState<string[]>([]);
 
   const [wishlist, setWishlist] = useState<BrickSet[]>(loadWishlist);
   const [compare, setCompare] = useState<BrickSet[]>([]);
@@ -81,7 +71,10 @@ export default function SetExplorer() {
 
   const query = useMemo(() => toQuery(filters, top), [filters, top]);
   const key = useMemo(() => queryToParams(query).toString(), [query]);
-  const loading = !loaded || loaded.key !== key || loaded.page !== page;
+  // Filtering 76 sets is instant, so results are derived directly from the filters.
+  const matches = useMemo(() => filterSets(query), [query]);
+  const items = matches.slice(0, page * PAGE_SIZE);
+  const hasMore = items.length < matches.length;
 
   const update = useCallback((patch: Partial<Filters>) => {
     setFilters((f) => ({ ...f, ...patch }));
@@ -97,28 +90,6 @@ export default function SetExplorer() {
     }, 220);
     return () => window.clearTimeout(t);
   }, [searchInput]);
-
-  // Fetch results (appending for "Load more").
-  useEffect(() => {
-    const ctrl = new AbortController();
-    const qs = queryToParams({ ...query, page });
-    fetch(`/api/sets?${qs}`, { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Search failed (${r.status})`))))
-      .then((data: Loaded['data']) => {
-        setError(null);
-        setThemes(data.themes);
-        setLoaded((prev) => ({
-          key,
-          page,
-          data,
-          items: page > 1 && prev?.key === key ? [...prev.items, ...data.results] : data.results,
-        }));
-      })
-      .catch((e: Error) => {
-        if (e.name !== 'AbortError') setError(e.message);
-      });
-    return () => ctrl.abort();
-  }, [key, page, query]);
 
   // Keep the URL shareable.
   useEffect(() => {
@@ -148,8 +119,6 @@ export default function SetExplorer() {
   }
 
   const wishPieces = wishlist.reduce((n, s) => n + s.pieces, 0);
-  const items = loaded?.items ?? [];
-  const data = loaded?.data;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
@@ -199,7 +168,7 @@ export default function SetExplorer() {
               className="mt-1 w-full border border-ink/15 bg-white px-2 py-2 text-sm outline-none focus:border-cobalt"
             >
               <option value="">All themes</option>
-              {themes.map((t) => (
+              {SET_THEMES.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -248,17 +217,10 @@ export default function SetExplorer() {
         </aside>
 
         {/* Results */}
-        <section aria-labelledby="results-heading" aria-busy={loading}>
+        <section aria-labelledby="results-heading">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 id="results-heading" className="font-mono text-[11px] tracking-[0.14em] text-ink-soft" aria-live="polite">
-              {data ? (
-                <>
-                  <span className="text-ink">{fmt(data.count)}</span> {data.count === 1 ? 'SET' : 'SETS'}
-                  {data.source === 'local' ? ' · FEATURED COLLECTION' : ' · LIVE REBRICKABLE CATALOG'}
-                </>
-              ) : (
-                'LOADING…'
-              )}
+              <span className="text-ink">{fmt(matches.length)}</span> {matches.length === 1 ? 'SET' : 'SETS'} · FEATURED COLLECTION
             </h2>
             <p className="text-[11px] text-ink-faint">
               Set data and thumbnails indexed via{' '}
@@ -268,18 +230,7 @@ export default function SetExplorer() {
             </p>
           </div>
 
-          {data?.fallbackReason && (
-            <p className="mb-3 border border-builder-yellow/40 bg-builder-yellow/10 px-3 py-2 text-xs text-amber-800">
-              {data.fallbackReason}. Showing the built-in featured collection instead.
-            </p>
-          )}
-          {error && (
-            <p role="alert" className="mb-3 border border-signal-red/30 bg-signal-red/10 px-3 py-2 text-xs text-red-700">
-              {error}
-            </p>
-          )}
-
-          {!loading && items.length === 0 ? (
+          {items.length === 0 ? (
             <div className="border border-dashed border-ink/20 bg-white/70 p-10 text-center">
               <p className="text-sm text-ink-soft">No sets match those filters.</p>
               <button type="button" onClick={reset} className="mt-3 text-sm font-semibold text-cobalt hover:underline">
@@ -287,7 +238,7 @@ export default function SetExplorer() {
               </button>
             </div>
           ) : (
-            <ul className={`grid grid-cols-2 gap-px border border-ink/15 bg-ink/15 sm:grid-cols-3 xl:grid-cols-4 ${loading && page === 1 ? 'opacity-60' : ''}`}>
+            <ul className="grid grid-cols-2 gap-px border border-ink/15 bg-ink/15 sm:grid-cols-3 xl:grid-cols-4">
               {items.map((s) => (
                 <li key={s.setNum} className="group relative flex flex-col bg-white">
                   <button type="button" onClick={() => setDetail(s)} className="flex flex-1 flex-col text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cobalt">
@@ -333,15 +284,14 @@ export default function SetExplorer() {
             </ul>
           )}
 
-          {data?.hasMore && (
+          {hasMore && (
             <div className="mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={() => setPage((p) => p + 1)}
-                disabled={loading}
-                className="border border-ink/20 bg-white px-5 py-2.5 text-sm font-semibold hover:border-cobalt hover:text-cobalt disabled:opacity-50"
+                className="border border-ink/20 bg-white px-5 py-2.5 text-sm font-semibold hover:border-cobalt hover:text-cobalt"
               >
-                {loading ? 'Loading…' : 'Load more sets'}
+                Load more sets
               </button>
             </div>
           )}

@@ -1,6 +1,6 @@
 # Builder's Bench
 
-An interactive 3D brick-building workshop in the browser: a free-build studio, step-by-step guided kits, a block figure lab, and a searchable set encyclopedia. Everything runs client-side with no backend or account. Builds, figures and wish lists save to your browser and export as portable JSON files or share links.
+An interactive 3D brick-building workshop in the browser: a free-build studio, step-by-step guided kits, a block figure lab, and a searchable set encyclopedia. It's a fully static site: everything runs client-side with no server, backend or account. Builds, figures and wish lists save to your browser and export as portable JSON files or share links.
 
 Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and React Three Fiber.
 
@@ -40,8 +40,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 
 ### Set Explorer
 
-- A built-in catalog of 76 iconic sets, so the explorer works with no setup.
-- Optionally searches the full Rebrickable catalog live when an API key is configured (see below).
+- A built-in catalog of 76 iconic sets, searched and filtered entirely in the browser.
 - Search by name or set number (e.g. `75192`), filter by theme, release-year range and piece count, and sort. Filters are kept in the URL, so filtered views can be shared.
 - Each set's detail view links to its official building instructions and its Rebrickable page.
 - Compare up to three sets side by side.
@@ -61,27 +60,19 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Optional: live Rebrickable search
+## Deployment
 
-The Set Explorer uses its built-in dataset by default. To search the full catalog, get a free API key from [rebrickable.com/api](https://rebrickable.com/api/) and add it to `.env.local`:
+The app is a static export (`output: "export"` in `next.config.ts`). `npm run build` writes plain HTML, CSS and JavaScript to `out/`, which any static host can serve. It's published on [Spacefast](https://spacefast.com) from this GitHub repository: every push to `main` builds and deploys the site automatically, and pull requests get preview builds.
 
-```bash
-cp .env.example .env.local
-```
-
-```
-REBRICKABLE_API_KEY=your-key-here
-```
-
-Restart the dev server. The results heading switches from **Featured collection** to **Live Rebrickable catalog**. The key is only used by the `/api/sets` route handler and never reaches the browser. If Rebrickable is unreachable, the explorer falls back to the built-in data and shows a notice.
+Because there's no server, the export can't include route handlers or Next's image optimizer. Set thumbnails load directly from Rebrickable's CDN. Tailwind runs through PostCSS (`postcss.config.mjs`), so styles build correctly with both Turbopack (local dev) and webpack.
 
 ## Scripts
 
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | Start the development server. |
-| `npm run build` | Production build. |
-| `npm run start` | Serve the production build. |
+| `npm run build` | Static production build into `out/`. |
+| `npx serve out` | Preview the static build locally (`next start` doesn't apply to static exports). |
 | `npm run lint` | Run ESLint. |
 | `npx tsx scripts/validate-kits.ts` | Check that every starter kit can be assembled step by step under the studio's placement rules. |
 
@@ -110,7 +101,7 @@ Restart the dev server. The results heading switches from **Featured collection*
 
 ```
 src/
-├── app/                  Routes: /, /studio, /kits, /figure-lab, /sets, /api/sets
+├── app/                  Routes: /, /studio, /kits, /kits/[slug], /kits/play, /figure-lab, /sets
 ├── components/
 │   ├── studio/           3D scene, brick meshes, toolbar, BuildBins HUD, parts drawer
 │   ├── kits/             Kit player, hologram scene, thumbnails, badges, confetti
@@ -122,7 +113,7 @@ src/
 │   ├── studio/           Placement rules, geometry, reducer, sharing and cartridges, sound
 │   ├── kits/             Step builder, kit validation, badges
 │   ├── figures/          Figure defaults, validation, saving, export
-│   └── sets/             Search and filtering, Rebrickable client, wish list
+│   └── sets/             Search and filtering, wish list
 └── types/                BuildProject, PlacedBrick, BlockFigure, BrickSet…
 docs/phases/              Implementation plans for each module
 scripts/                  Development checks

@@ -1,5 +1,5 @@
 import { FEATURED_SETS } from '@/data/featuredSets';
-import type { BrickSet, SetQuery, SetSearchResponse, SetSort } from '@/types/set';
+import type { BrickSet, SetQuery, SetSort } from '@/types/set';
 
 export const PAGE_SIZE = 48;
 export const MIN_YEAR = 1949;
@@ -85,10 +85,13 @@ export function compareSets(sort: SetSort = 'newest') {
   };
 }
 
-/** Filter the built-in dataset (used when no Rebrickable key is configured). */
-export function searchLocal(q: SetQuery): SetSearchResponse {
+/** Every top-level theme in the built-in catalog, for the theme filter. */
+export const SET_THEMES: string[] = [...new Set(FEATURED_SETS.map((s) => s.theme))].sort();
+
+/** Filter and sort the built-in catalog. Runs entirely in the browser. */
+export function filterSets(q: SetQuery): BrickSet[] {
   const needle = q.search?.toLowerCase();
-  const matches = FEATURED_SETS.filter((s) => {
+  return FEATURED_SETS.filter((s) => {
     if (needle) {
       const hay = `${s.name} ${s.setNum} ${s.theme} ${s.subtheme ?? ''}`.toLowerCase();
       if (!hay.includes(needle)) return false;
@@ -100,15 +103,4 @@ export function searchLocal(q: SetQuery): SetSearchResponse {
     if (q.maxPieces !== undefined && s.pieces > q.maxPieces) return false;
     return true;
   }).sort(compareSets(q.sort));
-
-  const page = q.page ?? 1;
-  const start = (page - 1) * PAGE_SIZE;
-  return {
-    source: 'local',
-    count: matches.length,
-    page,
-    hasMore: start + PAGE_SIZE < matches.length,
-    results: matches.slice(start, start + PAGE_SIZE),
-    themes: [...new Set(FEATURED_SETS.map((s) => s.theme))].sort(),
-  };
 }
