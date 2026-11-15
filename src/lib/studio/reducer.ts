@@ -53,7 +53,7 @@ export type StudioAction =
   | { type: 'selectPart'; partId: string }
   | { type: 'selectRecent'; index: number }
   | { type: 'setColor'; colorId: string }
-  | { type: 'rotate' }
+  | { type: 'rotate'; dir?: 1 | -1 }
   | { type: 'setTool'; tool: Tool }
   | { type: 'toggleTool'; tool: Exclude<Tool, 'place'> }
   | { type: 'setBaseplateColor'; colorId: string }
@@ -204,7 +204,7 @@ export function studioReducer(state: StudioState, action: StudioAction): StudioS
       };
 
     case 'rotate':
-      return { ...state, rotation: nextRotation(state.rotation) };
+      return { ...state, rotation: nextRotation(state.rotation, action.dir ?? 1) };
 
     case 'setTool':
       return { ...state, tool: action.tool === 'figure' && !state.placingFigure ? 'place' : action.tool };

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import { Vector3, type Object3D } from 'three';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
@@ -14,7 +15,7 @@ import { brickMaterial, ghostMaterial } from '@/lib/studio/three';
 import SceneLighting from '@/components/three/SceneLighting';
 import BlockFigureMesh from '@/components/figures/BlockFigureMesh';
 import { FIGURE_PART } from '@/lib/studio/figures';
-import type { BrickPart, PlacedFigure } from '@/types/brick';
+import type { BrickPart, BrickRotation, PlacedFigure } from '@/types/brick';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
 import StudioCamera, { type ViewMode, type ViewPan, type ViewTilt, type ViewTurn } from './StudioCamera';
@@ -358,7 +359,30 @@ function Workspace({
           ghost
         />
       )}
+
+      {/* Rotation hint floating over the preview, so rotating doesn't mean looking away. Touch has its own Rotate button. */}
+      {placement && !touch && <RotateHint part={part} placement={placement} rotation={rotation} />}
     </>
+  );
+}
+
+function RotateHint({ part, placement, rotation }: { part: BrickPart; placement: { x: number; y: number; z: number }; rotation: BrickRotation }) {
+  const { w, d } = rotatedSize(part, rotation);
+  return (
+    <Html
+      position={[placement.x + w / 2, (placement.y + part.heightUnits) * UNIT_H + 0.6, placement.z + d / 2]}
+      center
+      zIndexRange={[20, 0]}
+      style={{ pointerEvents: 'none' }}
+    >
+      <div className="flex select-none items-center gap-1.5 whitespace-nowrap border border-ink/15 bg-white/90 px-1.5 py-0.5 font-mono text-[10px] text-ink-soft shadow-sm backdrop-blur">
+        <span className="tabular-nums text-ink">{rotation}°</span>
+        <span className="text-ink-faint">·</span>
+        <kbd className="border border-ink/15 bg-slate-50 px-1">R</kbd>
+        <span className="text-ink-faint">or</span>
+        <kbd className="border border-ink/15 bg-slate-50 px-1">⇧ scroll</kbd>
+      </div>
+    </Html>
   );
 }
 

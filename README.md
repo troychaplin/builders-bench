@@ -97,7 +97,8 @@ Because there's no server, the export can't include route handlers or Next's ima
 | `V` | Toggle 3D / top-down 2D view |
 | `Q` / `E` | Rotate the baseplate view left / right |
 | `W` / `S` | Tilt the 3D view up / down |
-| `R` | Rotate 90° clockwise |
+| `R` / `⇧R` | Rotate the piece clockwise / counter-clockwise |
+| `⇧` + scroll | Rotate the piece in place |
 | `X` | Toggle eraser |
 | `P` | Toggle paint |
 | `F` | Open the Figures panel |

@@ -32,7 +32,8 @@ const SHORTCUTS: [string, string][] = [
   ['V', 'Toggle 3D / 2D view'],
   ['Q / E', 'Rotate baseplate left / right'],
   ['W / S', 'Tilt view up / down (3D)'],
-  ['R', 'Rotate 90° clockwise'],
+  ['R / ⇧R', 'Rotate piece clockwise / back'],
+  ['⇧ + Scroll', 'Rotate piece in place'],
   ['X', 'Toggle eraser'],
   ['P', 'Toggle paint'],
   ['Esc', 'Close panel / back to building'],
@@ -119,7 +120,7 @@ export default function StudioApp() {
       } else if (!mod && !e.altKey) {
         const n = Number(k);
         if (Number.isInteger(n) && n >= 1 && n <= RECENT_COUNT) dispatch({ type: 'selectRecent', index: n - 1 });
-        else if (k === 'r') dispatch({ type: 'rotate' });
+        else if (k === 'r') dispatch({ type: 'rotate', dir: e.shiftKey ? -1 : 1 });
         else if (k === 'x' || k === 'delete') dispatch({ type: 'toggleTool', tool: 'erase' });
         else if (k === 'p') dispatch({ type: 'toggleTool', tool: 'paint' });
         else if (k === 'b' || k === 'c' || k === 'f') {
@@ -147,6 +148,31 @@ export default function StudioApp() {
   }, [panView, togglePanel]);
 
   const notify = useCallback((message: string) => setNotice(message), []);
+
+  // Shift + scroll rotates the piece under the cursor instead of zooming.
+  // Native listener: React's wheel handlers are passive and can't stop the camera zoom.
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = canvasWrapRef.current;
+    if (!el) return;
+    let acc = 0;
+    let last = 0;
+    function onWheel(e: WheelEvent) {
+      if (!e.shiftKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      // Some browsers turn Shift + wheel into horizontal scrolling.
+      acc += Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      const now = performance.now();
+      // Trackpads send a stream of small deltas: step once per gesture chunk.
+      if (Math.abs(acc) < 40 || now - last < 140) return;
+      dispatch({ type: 'rotate', dir: acc > 0 ? 1 : -1 });
+      acc = 0;
+      last = now;
+    }
+    el.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    return () => el.removeEventListener('wheel', onWheel, { capture: true });
+  }, []);
   // Lives here, not in the Project panel, so it survives the panel closing while the file picker is open.
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -216,7 +242,7 @@ export default function StudioApp() {
       onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)}
       onDrop={handleDrop}
     >
-      <div className={`absolute inset-0 ${state.tool === 'place' ? 'cursor-crosshair' : 'cursor-pointer'}`}>
+      <div ref={canvasWrapRef} className={`absolute inset-0 ${state.tool === 'place' ? 'cursor-crosshair' : 'cursor-pointer'}`}>
         <StudioScene
           state={state}
           dispatch={dispatch}

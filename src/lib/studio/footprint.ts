@@ -10,8 +10,9 @@ const ROT: Record<BrickRotation, readonly [number, number]> = {
 
 export const ROTATIONS: BrickRotation[] = [0, 90, 180, 270];
 
-export function nextRotation(r: BrickRotation): BrickRotation {
-  return ROTATIONS[(ROTATIONS.indexOf(r) + 1) % 4];
+/** The next 90° step: clockwise by default, counter-clockwise with dir −1. */
+export function nextRotation(r: BrickRotation, dir: 1 | -1 = 1): BrickRotation {
+  return ROTATIONS[(ROTATIONS.indexOf(r) + dir + 4) % 4];
 }
 
 /** Footprint in studs after rotation (width along X, depth along Z). */
