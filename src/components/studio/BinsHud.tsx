@@ -1,7 +1,7 @@
 'use client';
 
 import type { Dispatch } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, UserRound } from 'lucide-react';
 import { BRICK_COLORS, getColor, getPart } from '@/data/brickCatalog';
 import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import PartThumb from './PartThumb';
@@ -11,10 +11,11 @@ interface BinsHudProps {
   state: StudioState;
   dispatch: Dispatch<StudioAction>;
   onOpenDrawer: () => void;
+  onOpenFigures: () => void;
 }
 
 /** Bottom quick-access BuildBins plus the color swatch bar. */
-export default function BinsHud({ state, dispatch, onOpenDrawer }: BinsHudProps) {
+export default function BinsHud({ state, dispatch, onOpenDrawer, onOpenFigures }: BinsHudProps) {
   const { bins, activeBin, tool } = state;
   const activeColorId = bins[activeBin].colorId;
 
@@ -60,6 +61,17 @@ export default function BinsHud({ state, dispatch, onOpenDrawer }: BinsHudProps)
         >
           <Plus className="h-4 w-4" />
           Fill BuildBins
+        </button>
+        <button
+          type="button"
+          onClick={onOpenFigures}
+          aria-pressed={tool === 'figure'}
+          className={`flex min-w-[84px] flex-col items-center justify-center gap-1 border px-2 text-[11px] font-semibold transition-colors ${
+            tool === 'figure' ? 'border-cyan bg-cyan/10 text-cyan' : 'border-ink/15 text-ink-soft hover:border-cobalt hover:text-cobalt'
+          }`}
+        >
+          <UserRound className="h-4 w-4" />
+          {tool === 'figure' && state.placingFigure ? <span className="max-w-[80px] truncate">{state.placingFigure.name}</span> : 'My Figures'}
         </button>
       </div>
 

@@ -77,3 +77,29 @@ export function playBlocked(): void {
   if (!ac) return;
   tick(ac, ac.currentTime + 0.005, { freq: 220, filter: 400, gain: 0.35 });
 }
+
+/** A tiny reel tick for the slot-machine randomizer. */
+export function playTick(): void {
+  const ac = audio();
+  if (!ac) return;
+  tick(ac, ac.currentTime + 0.002, { freq: 2600, filter: 4200, gain: 0.12 });
+}
+
+/** A bright two-note chime when the reels settle. */
+export function playChime(): void {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime + 0.01;
+  [880, 1320].forEach((f, i) => {
+    const osc = ac.createOscillator();
+    const env = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    env.gain.setValueAtTime(0.0001, t + i * 0.09);
+    env.gain.exponentialRampToValueAtTime(0.18, t + i * 0.09 + 0.01);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 0.35);
+    osc.connect(env).connect(ac.destination);
+    osc.start(t + i * 0.09);
+    osc.stop(t + i * 0.09 + 0.4);
+  });
+}

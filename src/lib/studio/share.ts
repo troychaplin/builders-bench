@@ -1,7 +1,9 @@
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 import { getColor, getPart } from '@/data/brickCatalog';
-import type { BrickRotation, BuildProject, PlacedBrick } from '@/types/brick';
+import type { BlockFigure, BrickRotation, BuildProject, PlacedBrick, PlacedFigure } from '@/types/brick';
+import { COLOR_KEYS, sanitizeFigure } from '@/lib/figures/figure';
 import { BASEPLATE_SIZE, getBaseplateColor, MAX_HEIGHT_UNITS } from './constants';
+import { FIGURE_PART } from './figures';
 import { rotatedSize, ROTATIONS } from './footprint';
 
 export const HASH_PREFIX = '#build=';
@@ -34,6 +36,17 @@ function sanitizeBrick(
   return { instanceId: newInstanceId(), partId: part.id, colorId, x: bx, y: by, z: bz, rotation: r };
 }
 
+function sanitizePlacedFigure(raw: unknown): PlacedFigure | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Partial<Record<keyof PlacedFigure, unknown>>;
+  const figure = sanitizeFigure(p.figure);
+  if (!figure || ![p.x, p.y, p.z].every(isInt) || !ROTATIONS.includes(p.rotation as BrickRotation)) return null;
+  const [x, y, z] = [p.x, p.y, p.z] as number[];
+  if (x < 0 || z < 0 || y < 0 || x + 2 > BASEPLATE_SIZE || z + 2 > BASEPLATE_SIZE) return null;
+  if (y + FIGURE_PART.heightUnits > MAX_HEIGHT_UNITS) return null;
+  return { instanceId: newInstanceId(), figure, x, y, z, rotation: p.rotation as BrickRotation };
+}
+
 /**
  * Turn untrusted JSON (a cartridge file or decoded share link) into a valid
  * project. Unknown parts/colors and out-of-bounds bricks are dropped.
@@ -51,6 +64,10 @@ export function sanitizeProject(raw: unknown): BuildProject | null {
     if (clean) bricks.push(clean);
   }
 
+  const figures = Array.isArray(data.figures)
+    ? data.figures.map(sanitizePlacedFigure).filter((f): f is PlacedFigure => !!f)
+    : [];
+
   return {
     id: str(data.id, 64, newInstanceId()),
     title: str(data.title, 80, 'Untitled Build'),
@@ -59,6 +76,7 @@ export function sanitizeProject(raw: unknown): BuildProject | null {
     baseplateSize: BASEPLATE_SIZE,
     baseplateColor: getBaseplateColor(typeof data.baseplateColor === 'string' ? data.baseplateColor : undefined).id,
     bricks,
+    ...(figures.length ? { figures } : {}),
   };
 }
 
@@ -67,12 +85,36 @@ export function sanitizeProject(raw: unknown): BuildProject | null {
 /** [partId, colorId, x, y, z, rotation / 90] */
 type BrickTuple = [string, string, number, number, number, number];
 
+/** [name, hat, head, torso, legs, accessory, colors (COLOR_KEYS order), faction, x, y, z, rotation / 90] */
+type FigureTuple = [string, string, string, string, string, string, string[], string, number, number, number, number];
+
 interface SharePayload {
   v: 1;
   t: string;
   a: string;
   c: string;
   b: BrickTuple[];
+  f?: FigureTuple[];
+}
+
+function figureToTuple(p: PlacedFigure): FigureTuple {
+  const f = p.figure;
+  return [f.name, f.hatId, f.headId, f.torsoId, f.legsId, f.accessoryId, COLOR_KEYS.map((k) => f.colors[k]), f.faction ?? 'space', p.x, p.y, p.z, p.rotation / 90];
+}
+
+function tupleToFigure(t: unknown[]): unknown {
+  const [name, hatId, headId, torsoId, legsId, accessoryId, colors, faction, x, y, z, r] = t;
+  const figure: Partial<BlockFigure> = {
+    name: name as string,
+    hatId: hatId as string,
+    headId: headId as string,
+    torsoId: torsoId as string,
+    legsId: legsId as string,
+    accessoryId: accessoryId as string,
+    faction: faction as string,
+    colors: Array.isArray(colors) ? Object.fromEntries(COLOR_KEYS.map((k, i) => [k, colors[i]])) : {},
+  };
+  return { figure, x, y, z, rotation: isInt(r) ? r * 90 : -1 };
 }
 
 export function encodeProject(p: BuildProject): string {
@@ -83,6 +125,7 @@ export function encodeProject(p: BuildProject): string {
     c: getBaseplateColor(p.baseplateColor).id,
     b: p.bricks.map((b) => [b.partId, b.colorId, b.x, b.y, b.z, b.rotation / 90]),
   };
+  if (p.figures?.length) payload.f = p.figures.map(figureToTuple);
   return compressToEncodedURIComponent(JSON.stringify(payload));
 }
 
@@ -99,6 +142,7 @@ export function decodeProject(encoded: string): BuildProject | null {
       bricks: data.b
         .filter((t): t is BrickTuple => Array.isArray(t) && t.length === 6)
         .map(([partId, colorId, x, y, z, r]) => ({ partId, colorId, x, y, z, rotation: isInt(r) ? r * 90 : -1 })),
+      figures: Array.isArray(data.f) ? data.f.filter((t) => Array.isArray(t) && t.length === 12).map(tupleToFigure) : [],
     });
   } catch {
     return null;

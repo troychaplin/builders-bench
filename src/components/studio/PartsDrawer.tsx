@@ -1,18 +1,25 @@
 'use client';
 
 import { useEffect, useRef, useState, type Dispatch } from 'react';
-import { X } from 'lucide-react';
+import Link from 'next/link';
+import { UserRound, X } from 'lucide-react';
+import FigureIcon from '@/components/figures/FigureIcon';
+import { getFaction } from '@/data/figureParts';
+import { loadFigures } from '@/lib/figures/figure';
 import { BRICK_CATEGORIES, BRICK_COLORS, BRICK_PARTS, getColor, getPart } from '@/data/brickCatalog';
-import type { BrickCategory, BrickFinish } from '@/types/brick';
+import type { BlockFigure, BrickCategory, BrickFinish } from '@/types/brick';
 import { BIN_KITS } from '@/lib/studio/bins';
 import type { StudioAction, StudioState } from '@/lib/studio/reducer';
 import PartThumb from './PartThumb';
 import { inkOn, swatchStyle } from './Swatch';
 
+export type DrawerTab = 'bins' | 'figures';
+
 interface PartsDrawerProps {
   state: StudioState;
   dispatch: Dispatch<StudioAction>;
   onClose: () => void;
+  initialTab?: DrawerTab;
 }
 
 const FINISHES: { id: BrickFinish; label: string }[] = [
@@ -22,7 +29,9 @@ const FINISHES: { id: BrickFinish; label: string }[] = [
 ];
 
 /** Modal catalog for loading parts and colors into the six BuildBins. */
-export default function PartsDrawer({ state, dispatch, onClose }: PartsDrawerProps) {
+export default function PartsDrawer({ state, dispatch, onClose, initialTab = 'bins' }: PartsDrawerProps) {
+  const [tab, setTab] = useState<DrawerTab>(initialTab);
+  const [figures] = useState(loadFigures);
   const [target, setTarget] = useState(state.activeBin);
   const [category, setCategory] = useState<BrickCategory | 'all'>('all');
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -56,14 +65,37 @@ export default function PartsDrawer({ state, dispatch, onClose }: PartsDrawerPro
           <div>
             <p className="font-mono text-[10px] tracking-[0.2em] text-cobalt">PARTS DRAWER</p>
             <h2 id="parts-drawer-title" className="font-display text-xl font-bold tracking-tight">
-              Fill your BuildBins
+              {tab === 'bins' ? 'Fill your BuildBins' : 'My Figures'}
             </h2>
+          </div>
+          <div role="tablist" aria-label="Drawer sections" className="ml-auto mr-3 flex border border-ink/15">
+            {(['bins', 'figures'] as const).map((t) => (
+              <button
+                key={t}
+                role="tab"
+                type="button"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={`px-3 py-1.5 text-xs font-semibold ${tab === t ? 'bg-ink text-white' : 'text-ink-soft hover:text-ink'}`}
+              >
+                {t === 'bins' ? 'BuildBins' : `My Figures (${figures.length})`}
+              </button>
+            ))}
           </div>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Close parts drawer" className="p-1.5 text-ink-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-cobalt">
             <X className="h-5 w-5" />
           </button>
         </header>
 
+        {tab === 'figures' ? (
+          <FiguresPanel
+            figures={figures}
+            onPick={(f) => {
+              dispatch({ type: 'pickFigure', figure: f });
+              onClose();
+            }}
+          />
+        ) : (
         <div className="grid flex-1 gap-0 overflow-y-auto md:grid-cols-[200px_1fr]">
           {/* Bin targets */}
           <aside className="border-b border-ink/15 p-4 md:border-b-0 md:border-r">
@@ -202,12 +234,55 @@ export default function PartsDrawer({ state, dispatch, onClose }: PartsDrawerPro
           </div>
         </div>
 
-        <footer className="flex justify-end gap-2 border-t border-ink/15 px-5 py-3">
-          <button type="button" onClick={finish} className="bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cobalt">
-            Build with bin {target + 1}
-          </button>
-        </footer>
+        )}
+
+        {tab === 'bins' && (
+          <footer className="flex justify-end gap-2 border-t border-ink/15 px-5 py-3">
+            <button type="button" onClick={finish} className="bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-cobalt">
+              Build with bin {target + 1}
+            </button>
+          </footer>
+        )}
       </div>
+    </div>
+  );
+}
+
+function FiguresPanel({ figures, onPick }: { figures: BlockFigure[]; onPick: (f: BlockFigure) => void }) {
+  if (!figures.length) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+        <UserRound className="h-8 w-8 text-ink-faint" />
+        <p className="max-w-sm text-sm text-ink-soft">No saved figures yet. Design a hero in the Figure Lab and save it to see it here.</p>
+        <Link href="/figure-lab" className="bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-cobalt">
+          Open Figure Lab
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+      <p className="mb-3 text-sm text-ink-soft">Pick a hero, then click the baseplate to place them. Press R to turn them.</p>
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        {figures.map((f) => (
+          <li key={f.id}>
+            <button
+              type="button"
+              onClick={() => onPick(f)}
+              className="flex w-full flex-col items-center gap-1 border border-ink/15 px-2 pb-2.5 pt-3 text-center transition-colors hover:border-cobalt"
+            >
+              <FigureIcon figure={f} size={56} />
+              <span className="w-full truncate text-xs font-semibold">{f.name}</span>
+              <span className="font-mono text-[9px] tracking-[0.14em]" style={{ color: getFaction(f.faction).hex }}>
+                {getFaction(f.faction).name.toUpperCase()}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Link href="/figure-lab" className="mt-4 inline-block text-xs font-semibold text-ink-soft hover:text-cobalt">
+        Design another hero in the Figure Lab →
+      </Link>
     </div>
   );
 }

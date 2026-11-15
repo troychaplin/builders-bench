@@ -107,3 +107,21 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Slot-machine reel blur for the Figure Lab randomizer. */
+@keyframes reel-roll {
+  0% { transform: translateY(-35%); opacity: 0.35; }
+  100% { transform: translateY(35%); opacity: 0.9; }
+}
+.reel-spin {
+  animation: reel-roll 110ms linear infinite;
+  filter: blur(0.6px);
+}
+@keyframes reel-land {
+  0% { transform: translateY(-20%); }
+  60% { transform: translateY(6%); }
+  100% { transform: translateY(0); }
+}
+.reel-land {
+  animation: reel-land 260ms ease-out;
+}

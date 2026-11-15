@@ -1,6 +1,7 @@
 import { getPart } from '@/data/brickCatalog';
-import type { BrickPart, BrickRotation, PlacedBrick } from '@/types/brick';
+import type { BrickPart, BrickRotation, PlacedBrick, PlacedFigure } from '@/types/brick';
 import { MAX_HEIGHT_UNITS } from './constants';
+import { FIGURE_PART } from './figures';
 import { brickCells, rotatedSize } from './footprint';
 
 /** A vertical slice of one stud column occupied by a brick: [y0, y1) in height units. */
@@ -15,18 +16,24 @@ export type Occupancy = Map<string, Span[]>;
 
 const key = (x: number, z: number) => `${x},${z}`;
 
-export function buildOccupancy(bricks: PlacedBrick[]): Occupancy {
+type Pose = { x: number; y: number; z: number; rotation: BrickRotation };
+
+function addSpans(occ: Occupancy, part: BrickPart, pose: Pose, id: string) {
+  for (const cell of brickCells(part, pose.x, pose.z, pose.rotation)) {
+    const k = key(cell.x, cell.z);
+    const list = occ.get(k) ?? [];
+    list.push({ y0: pose.y, y1: pose.y + part.heightUnits, stud: cell.stud, id });
+    occ.set(k, list);
+  }
+}
+
+export function buildOccupancy(bricks: PlacedBrick[], figures: PlacedFigure[] = []): Occupancy {
   const occ: Occupancy = new Map();
   for (const b of bricks) {
     const part = getPart(b.partId);
-    if (!part) continue;
-    for (const cell of brickCells(part, b.x, b.z, b.rotation)) {
-      const k = key(cell.x, cell.z);
-      const list = occ.get(k) ?? [];
-      list.push({ y0: b.y, y1: b.y + part.heightUnits, stud: cell.stud, id: b.instanceId });
-      occ.set(k, list);
-    }
+    if (part) addSpans(occ, part, b, b.instanceId);
   }
+  for (const f of figures) addSpans(occ, FIGURE_PART, f, f.instanceId);
   return occ;
 }
 
@@ -74,7 +81,7 @@ export function resolvePlacement(
     for (const c of cells) {
       const support = occ.get(key(c.x, c.z))?.find((s) => s.y1 === y);
       if (support && !support.stud) {
-        return { x, y, z, valid: false, reason: 'Nothing can connect to a smooth tile or slope.' };
+        return { x, y, z, valid: false, reason: 'Nothing can connect to a smooth tile, slope or figure.' };
       }
     }
   }
@@ -86,12 +93,10 @@ export function resolvePlacement(
   return { x, y, z, valid: true };
 }
 
-/** True when another brick sits directly on top of this one. */
-export function isSupportingOthers(occ: Occupancy, brick: PlacedBrick): boolean {
-  const part = getPart(brick.partId);
-  if (!part) return false;
-  const top = brick.y + part.heightUnits;
-  return brickCells(part, brick.x, brick.z, brick.rotation).some((c) =>
-    occ.get(key(c.x, c.z))?.some((s) => s.y0 === top && s.id !== brick.instanceId),
+/** True when another brick or figure sits directly on top of this piece. */
+export function isSupportingOthers(occ: Occupancy, part: BrickPart, pose: Pose, id: string): boolean {
+  const top = pose.y + part.heightUnits;
+  return brickCells(part, pose.x, pose.z, pose.rotation).some((c) =>
+    occ.get(key(c.x, c.z))?.some((s) => s.y0 === top && s.id !== id),
   );
 }

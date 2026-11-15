@@ -48,6 +48,8 @@ export interface BuildProject {
   bricks: PlacedBrick[];
   /** Studio baseplate color id (optional; defaults to Forest Green). */
   baseplateColor?: string;
+  /** Block figures standing on the baseplate (optional). */
+  figures?: PlacedFigure[];
 }
 
 export interface BlockFigure {
@@ -59,4 +61,16 @@ export interface BlockFigure {
   legsId: string;
   accessoryId: string;
   colors: Record<string, string>;
+  /** Figure Lab faction id: space | castle | city | heroes (optional). */
+  faction?: string;
+}
+
+/** A block figure placed in a build; occupies a 2×2 stud footprint. */
+export interface PlacedFigure {
+  instanceId: string;
+  figure: BlockFigure;
+  x: number;
+  y: number;
+  z: number;
+  rotation: BrickRotation;
 }
