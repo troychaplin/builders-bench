@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import ModePlaceholder from '@/components/ModePlaceholder';
-import { getMode } from '@/data/modes';
+import FigureLabClient from '@/components/figures/FigureLabClient';
 
-const mode = getMode('/figure-lab');
-
-export const metadata: Metadata = { title: mode.title };
+export const metadata: Metadata = {
+  title: 'Figure Lab',
+  description: 'Mix and match block figure parts, generate a Builder ID card, and place heroes in your builds.',
+};
 
 export default function FigureLabPage() {
-  return <ModePlaceholder mode={mode} />;
+  return <FigureLabClient />;
 }

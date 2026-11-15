@@ -21,9 +21,9 @@ export function rotatedSize(part: BrickPart, rotation: BrickRotation) {
     : { w: part.depthStuds, d: part.widthStuds };
 }
 
-/** Whether a part has studs on top. Tiles and slopes are smooth. */
+/** Whether a part has studs on top. Tiles, slopes and figures are smooth. */
 export function hasStuds(part: BrickPart): boolean {
-  return part.category !== 'tile' && part.category !== 'slope';
+  return part.category !== 'tile' && part.category !== 'slope' && part.id !== 'figure';
 }
 
 export interface WorldCell {

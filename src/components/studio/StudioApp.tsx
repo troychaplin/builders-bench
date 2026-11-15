@@ -9,7 +9,7 @@ import { activeSelection, createInitialState, studioReducer } from '@/lib/studio
 import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartridge, readHashProject, shareUrl } from '@/lib/studio/share';
 import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
 import BinsHud from './BinsHud';
-import PartsDrawer from './PartsDrawer';
+import PartsDrawer, { type DrawerTab } from './PartsDrawer';
 import StudioScene, { type PlacementInfo } from './StudioScene';
 import Toolbar from './Toolbar';
 
@@ -22,6 +22,7 @@ const SHORTCUTS: [string, string][] = [
   ['R', 'Rotate 90° clockwise'],
   ['X', 'Toggle eraser'],
   ['P', 'Toggle paint'],
+  ['F', 'My Figures drawer'],
   ['Esc', 'Back to building'],
   ['⌘Z', 'Undo'],
   ['⇧⌘Z', 'Redo'],
@@ -43,7 +44,8 @@ export default function StudioApp() {
   const [notice, setNotice] = useState<string | null>(initial.notice);
   const [sound, setSound] = useState(initial.sound);
   const [showKeys, setShowKeys] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerTab, setDrawerTab] = useState<DrawerTab | null>(null);
+  const drawerOpen = drawerTab !== null;
   const [dragging, setDragging] = useState(false);
   const [viewNonce, setViewNonce] = useState(0);
   const [placement, setPlacement] = useState<PlacementInfo | null>(null);
@@ -98,6 +100,7 @@ export default function StudioApp() {
         else if (k === 'r') dispatch({ type: 'rotate' });
         else if (k === 'x' || k === 'delete') dispatch({ type: 'toggleTool', tool: 'erase' });
         else if (k === 'p') dispatch({ type: 'toggleTool', tool: 'paint' });
+        else if (k === 'f') setDrawerTab('figures');
         else if (k === 'escape') dispatch({ type: 'setTool', tool: 'place' });
         else if (k === '?') setShowKeys((v) => !v);
       }
@@ -107,7 +110,7 @@ export default function StudioApp() {
   }, [drawerOpen]);
 
   const notify = useCallback((message: string) => setNotice(message), []);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const closeDrawer = useCallback(() => setDrawerTab(null), []);
 
   async function handleShare() {
     const url = shareUrl(project);
@@ -204,10 +207,18 @@ export default function StudioApp() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-ink/15 bg-white/90 px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft backdrop-blur">
             <span>
               BRICKS <span className="text-ink">{project.bricks.length}</span>
+              {project.figures?.length ? (
+                <>
+                  {' '}· FIGURES <span className="text-ink">{project.figures.length}</span>
+                </>
+              ) : null}
             </span>
             <span className="hidden items-center gap-1.5 sm:flex">
               <span className="h-2.5 w-2.5 rounded-sm border border-ink/20" style={{ backgroundColor: color?.hex }} aria-hidden="true" />
-              <span className="text-ink">{part?.name.toUpperCase()}</span> · {rotation}°
+              <span className="text-ink">
+                {(state.tool === 'figure' && state.placingFigure ? state.placingFigure.name : part?.name)?.toUpperCase()}
+              </span>{' '}
+              · {rotation}°
             </span>
             {placement && (
               <span className={placement.valid ? '' : 'text-signal-red'}>
@@ -251,7 +262,7 @@ export default function StudioApp() {
         </div>
 
         <div className="pointer-events-auto flex w-full justify-center">
-          <BinsHud state={state} dispatch={dispatch} onOpenDrawer={() => setDrawerOpen(true)} />
+          <BinsHud state={state} dispatch={dispatch} onOpenDrawer={() => setDrawerTab('bins')} onOpenFigures={() => setDrawerTab('figures')} />
         </div>
       </div>
 
@@ -264,7 +275,7 @@ export default function StudioApp() {
         </div>
       )}
 
-      {drawerOpen && <PartsDrawer state={state} dispatch={dispatch} onClose={closeDrawer} />}
+      {drawerTab && <PartsDrawer state={state} dispatch={dispatch} onClose={closeDrawer} initialTab={drawerTab} />}
     </div>
   );
 }

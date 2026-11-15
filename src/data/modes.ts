@@ -45,7 +45,7 @@ export const APP_MODES: AppMode[] = [
     title: 'Figure Lab',
     tagline: 'Design a block figure',
     description: 'Mix hats, heads, torsos, legs, and accessories into your own posable character.',
-    status: 'upcoming',
+    status: 'active',
     phase: 3,
   },
   {
