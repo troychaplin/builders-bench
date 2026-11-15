@@ -59,9 +59,45 @@ export const BRICK_PARTS: BrickPart[] = [
   { id: 'slope-45-1x2', name: 'Slope 45° 1×2', category: 'slope', widthStuds: 1, depthStuds: 2, heightUnits: BRICK_HEIGHT },
   { id: 'slope-45-2x2', name: 'Slope 45° 2×2', category: 'slope', widthStuds: 2, depthStuds: 2, heightUnits: BRICK_HEIGHT },
   // Specials
-  { id: 'round-1x1', name: 'Round Stud 1×1', category: 'special', widthStuds: 1, depthStuds: 1, heightUnits: PLATE_HEIGHT },
+  { id: 'round-1x1', name: 'Round Stud 1×1', category: 'round', shape: 'round', widthStuds: 1, depthStuds: 1, heightUnits: PLATE_HEIGHT },
   { id: 'window-1x2', name: 'Window 1×2', category: 'special', widthStuds: 1, depthStuds: 2, heightUnits: BRICK_HEIGHT * 2 },
   { id: 'wheel-axle-2x2', name: 'Wheel & Axle 2×2', category: 'special', widthStuds: 2, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+
+  // ---- Append only below this line: share links store each part's index in this list. ----
+
+  // More sizes
+  { id: 'brick-1x6', name: 'Brick 1×6', category: 'brick', widthStuds: 1, depthStuds: 6, heightUnits: BRICK_HEIGHT },
+  { id: 'brick-1x8', name: 'Brick 1×8', category: 'brick', widthStuds: 1, depthStuds: 8, heightUnits: BRICK_HEIGHT },
+  { id: 'brick-2x3', name: 'Brick 2×3', category: 'brick', widthStuds: 2, depthStuds: 3, heightUnits: BRICK_HEIGHT },
+  { id: 'brick-2x8', name: 'Brick 2×8', category: 'brick', widthStuds: 2, depthStuds: 8, heightUnits: BRICK_HEIGHT },
+  { id: 'plate-1x1', name: 'Plate 1×1', category: 'plate', widthStuds: 1, depthStuds: 1, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-1x3', name: 'Plate 1×3', category: 'plate', widthStuds: 1, depthStuds: 3, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-1x4', name: 'Plate 1×4', category: 'plate', widthStuds: 1, depthStuds: 4, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-1x6', name: 'Plate 1×6', category: 'plate', widthStuds: 1, depthStuds: 6, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-1x8', name: 'Plate 1×8', category: 'plate', widthStuds: 1, depthStuds: 8, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-2x3', name: 'Plate 2×3', category: 'plate', widthStuds: 2, depthStuds: 3, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-2x6', name: 'Plate 2×6', category: 'plate', widthStuds: 2, depthStuds: 6, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-2x8', name: 'Plate 2×8', category: 'plate', widthStuds: 2, depthStuds: 8, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-4x6', name: 'Plate 4×6', category: 'plate', widthStuds: 4, depthStuds: 6, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-6x6', name: 'Plate 6×6', category: 'plate', widthStuds: 6, depthStuds: 6, heightUnits: PLATE_HEIGHT },
+  { id: 'plate-8x8', name: 'Plate 8×8', category: 'plate', widthStuds: 8, depthStuds: 8, heightUnits: PLATE_HEIGHT },
+  { id: 'tile-1x1', name: 'Tile 1×1', category: 'tile', widthStuds: 1, depthStuds: 1, heightUnits: PLATE_HEIGHT },
+  { id: 'tile-1x4', name: 'Tile 1×4', category: 'tile', widthStuds: 1, depthStuds: 4, heightUnits: PLATE_HEIGHT },
+  { id: 'tile-2x4', name: 'Tile 2×4', category: 'tile', widthStuds: 2, depthStuds: 4, heightUnits: PLATE_HEIGHT },
+  { id: 'slope-45-2x4', name: 'Slope 45° 2×4', category: 'slope', widthStuds: 4, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+
+  // New shapes
+  { id: 'slope-33-1x3', name: 'Slope 33° 1×3', category: 'slope', widthStuds: 1, depthStuds: 3, heightUnits: BRICK_HEIGHT },
+  { id: 'slope-33-2x3', name: 'Slope 33° 2×3', category: 'slope', widthStuds: 2, depthStuds: 3, heightUnits: BRICK_HEIGHT },
+  { id: 'slope-inv-45-1x2', name: 'Inverted Slope 45° 1×2', category: 'slope', shape: 'inverted-slope', studs: true, widthStuds: 1, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+  { id: 'slope-inv-45-2x2', name: 'Inverted Slope 45° 2×2', category: 'slope', shape: 'inverted-slope', studs: true, widthStuds: 2, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+  { id: 'arch-1x4', name: 'Arch 1×4', category: 'arch', shape: 'arch', widthStuds: 1, depthStuds: 4, heightUnits: BRICK_HEIGHT },
+  { id: 'arch-1x6', name: 'Arch 1×6', category: 'arch', shape: 'arch', widthStuds: 1, depthStuds: 6, heightUnits: BRICK_HEIGHT },
+  { id: 'corner-brick-2x2', name: 'Corner Brick 2×2', category: 'brick', shape: 'corner', missing: [[1, 1]], widthStuds: 2, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+  { id: 'corner-plate-2x2', name: 'Corner Plate 2×2', category: 'plate', shape: 'corner', missing: [[1, 1]], widthStuds: 2, depthStuds: 2, heightUnits: PLATE_HEIGHT },
+  { id: 'round-brick-1x1', name: 'Round Brick 1×1', category: 'round', shape: 'round', widthStuds: 1, depthStuds: 1, heightUnits: BRICK_HEIGHT },
+  { id: 'round-brick-2x2', name: 'Round Brick 2×2', category: 'round', shape: 'round', widthStuds: 2, depthStuds: 2, heightUnits: BRICK_HEIGHT },
+  { id: 'cone-1x1', name: 'Cone 1×1', category: 'round', shape: 'cone', widthStuds: 1, depthStuds: 1, heightUnits: BRICK_HEIGHT },
 ];
 
 export const BRICK_CATEGORIES: { id: BrickCategory; label: string }[] = [
@@ -69,6 +105,8 @@ export const BRICK_CATEGORIES: { id: BrickCategory; label: string }[] = [
   { id: 'plate', label: 'Plates' },
   { id: 'tile', label: 'Tiles' },
   { id: 'slope', label: 'Slopes' },
+  { id: 'round', label: 'Round' },
+  { id: 'arch', label: 'Arches' },
   { id: 'special', label: 'Specials' },
 ];
 

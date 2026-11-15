@@ -22,7 +22,7 @@ function addSpans(occ: Occupancy, part: BrickPart, pose: Pose, id: string) {
   for (const cell of brickCells(part, pose.x, pose.z, pose.rotation)) {
     const k = key(cell.x, cell.z);
     const list = occ.get(k) ?? [];
-    list.push({ y0: pose.y, y1: pose.y + part.heightUnits, stud: cell.stud, id });
+    list.push({ y0: pose.y + cell.bottom, y1: pose.y + part.heightUnits, stud: cell.stud, id });
     occ.set(k, list);
   }
 }
@@ -74,12 +74,14 @@ export function resolvePlacement(
   const z = Math.min(Math.max(anchorZ - Math.floor((d - 1) / 2), 0), baseplateSize - d);
   const cells = brickCells(part, x, z, rotation);
 
+  // Rest on the highest surface under any cell. Cells with open space beneath
+  // (arch openings, inverted-slope overhangs) can sit lower than the part's base.
   let y = 0;
-  for (const c of cells) y = Math.max(y, columnTop(occ, c.x, c.z));
+  for (const c of cells) y = Math.max(y, columnTop(occ, c.x, c.z) - c.bottom);
 
-  if (y > 0) {
+  if (y > 0 || cells.some((c) => c.bottom > 0)) {
     for (const c of cells) {
-      const support = occ.get(key(c.x, c.z))?.find((s) => s.y1 === y);
+      const support = occ.get(key(c.x, c.z))?.find((s) => s.y1 === y + c.bottom);
       if (support && !support.stud) {
         return { x, y, z, valid: false, reason: 'Nothing can connect to a smooth tile, slope or figure.' };
       }

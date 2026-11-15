@@ -21,15 +21,39 @@ export function rotatedSize(part: BrickPart, rotation: BrickRotation) {
     : { w: part.depthStuds, d: part.widthStuds };
 }
 
-/** Whether a part has studs on top. Tiles, slopes and figures are smooth. */
+/** Whether a part has studs on top. Tiles, slopes and figures are smooth unless the part says otherwise. */
 export function hasStuds(part: BrickPart): boolean {
+  if (part.studs !== undefined) return part.studs;
   return part.category !== 'tile' && part.category !== 'slope' && part.id !== 'figure';
+}
+
+/** Whether the part fills local cell (i, j) of its footprint. */
+export function fillsCell(part: BrickPart, i: number, j: number): boolean {
+  return !part.missing?.some(([mi, mj]) => mi === i && mj === j);
+}
+
+/**
+ * Height units of open space under local cell (i, j): the opening of an arch,
+ * or the overhang under an inverted slope's front. 0 for solid cells.
+ */
+export function cellBottom(part: BrickPart, i: number, j: number): number {
+  if (part.shape === 'arch') {
+    // A one-plate beam spans the opening; the outermost cells are solid legs.
+    return j > 0 && j < part.depthStuds - 1 ? part.heightUnits - 1 : 0;
+  }
+  if (part.shape === 'inverted-slope') {
+    // Only the back row reaches the bottom; the front row hangs over open space.
+    return j === part.depthStuds - 1 ? part.heightUnits - 1 : 0;
+  }
+  return 0;
 }
 
 export interface WorldCell {
   x: number;
   z: number;
   stud: boolean;
+  /** Open space under this cell, in height units above the part's base. */
+  bottom: number;
 }
 
 /**
@@ -46,11 +70,12 @@ export function brickCells(part: BrickPart, x0: number, z0: number, rotation: Br
   const cells: WorldCell[] = [];
   for (let i = 0; i < part.widthStuds; i++) {
     for (let j = 0; j < part.depthStuds; j++) {
+      if (!fillsCell(part, i, j)) continue;
       const lx = -part.widthStuds / 2 + i + 0.5;
       const lz = -part.depthStuds / 2 + j + 0.5;
       const wx = lx * c - lz * s;
       const wz = lx * s + lz * c;
-      cells.push({ x: Math.floor(cx + wx), z: Math.floor(cz + wz), stud: studs });
+      cells.push({ x: Math.floor(cx + wx), z: Math.floor(cz + wz), stud: studs, bottom: cellBottom(part, i, j) });
     }
   }
   return cells;

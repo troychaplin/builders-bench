@@ -9,6 +9,19 @@ import PartThumb from './PartThumb';
 import { inkOn } from './Swatch';
 import { SECTION_LABEL, chip, tile } from './controls';
 
+/**
+ * The catalog is append-only (share links store indexes), so new parts land at the end.
+ * Show them grouped by category, then smallest first.
+ */
+const CATEGORY_ORDER = new Map(BRICK_CATEGORIES.map((c, i) => [c.id, i]));
+const DISPLAY_PARTS = [...BRICK_PARTS].sort(
+  (a, b) =>
+    (CATEGORY_ORDER.get(a.category) ?? 99) - (CATEGORY_ORDER.get(b.category) ?? 99) ||
+    a.widthStuds * a.depthStuds - b.widthStuds * b.depthStuds ||
+    a.widthStuds - b.widthStuds ||
+    a.heightUnits - b.heightUnits,
+);
+
 /** Browse every block by category or search, with the most recently used ones up top. */
 export default function BlocksPanel({
   state,
@@ -26,7 +39,7 @@ export default function BlocksPanel({
   const placing = state.tool === 'place';
 
   const q = query.trim().toLowerCase().replace(/x/g, '×');
-  const parts = BRICK_PARTS.filter(
+  const parts = DISPLAY_PARTS.filter(
     (p) => (category === 'all' || p.category === category) && (!q || `${p.name} ${p.category}`.toLowerCase().includes(q)),
   );
   const recents = recentParts.map((id) => getPart(id)).filter((p): p is BrickPart => !!p);

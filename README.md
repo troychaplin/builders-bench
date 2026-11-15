@@ -17,7 +17,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 ### BuildBin Studio
 
 - Stud-snapping placement with a translucent preview that turns red where a piece can't go. The rules block overlapping, floating, and stacking on tiles, slopes or figures.
-- Eighteen procedurally modeled parts (bricks, plates, tiles, slopes, a round stud, a window, a wheel and axle) in 27 colors, including transparent and metallic finishes.
+- 48 procedurally modeled parts in 27 colours, including transparent and metallic finishes: bricks, plates and tiles in many sizes, 45° and 33° slopes, inverted slopes, arches, corner pieces, round bricks, a cone, a window, and a wheel and axle.
 - A floating **tool rail**: Project, Blocks, Colour, Paint, Eraser, Rotate, Baseplate, Figures, Undo, Redo and Clear. It sits on the left on desktop and along the bottom on phones.
 - A **Project** panel for the build's name, share link, saving and opening files, Play as Guided Kit and sound.
 - A top **status bar** with the piece count, the selected part, live X/Y/Z coordinates, the view controls and Share.
@@ -38,7 +38,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 
 ### Figure Lab
 
-- Five part slots: headgear, expression, torso, legs and accessory, each with its own color (plus skin tone).
+- Five part slots with 50 original options: 13 headgear (including bare head), 10 expressions, 10 torsos, 6 legs and 11 accessories (including empty hands), each slot with its own colour (plus skin tone).
 - **Randomize Hero** spins slot-machine reels that settle one slot at a time.
 - Choose a name and faction (Space, Castle, City, Heroes), and generate a collectible **Builder ID card** that downloads as a PNG.
 - Save heroes to My Figures, or export and import them as `.figure.json` files.

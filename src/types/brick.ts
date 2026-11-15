@@ -7,7 +7,10 @@
  *   1 plate = 1 unit, 1 standard brick = 3 units.
  */
 
-export type BrickCategory = 'brick' | 'plate' | 'tile' | 'slope' | 'special';
+export type BrickCategory = 'brick' | 'plate' | 'tile' | 'slope' | 'round' | 'arch' | 'special';
+
+/** Shapes that need their own geometry or footprint beyond a plain box. */
+export type BrickShape = 'inverted-slope' | 'arch' | 'corner' | 'cone' | 'round';
 
 export interface BrickPart {
   id: string;
@@ -16,6 +19,11 @@ export interface BrickPart {
   widthStuds: number;
   depthStuds: number;
   heightUnits: number;
+  shape?: BrickShape;
+  /** Overrides whether the top has studs (the category decides by default). */
+  studs?: boolean;
+  /** Local [column, row] cells inside the footprint that the part doesn't fill. */
+  missing?: [number, number][];
 }
 
 export type BrickFinish = 'solid' | 'transparent' | 'metallic';
