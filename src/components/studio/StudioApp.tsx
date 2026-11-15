@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, ChevronsDown, ChevronsUp, FileUp, Focus, Keyboard, RotateCcwSquare, RotateCwSquare, Square, X } from 'lucide-react';
+import { Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, RotateCcwSquare, RotateCw, RotateCwSquare, Square, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BIN_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
@@ -11,7 +11,7 @@ import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveS
 import BinsHud from './BinsHud';
 import PartsDrawer, { type DrawerTab } from './PartsDrawer';
 import type { ViewMode, ViewTilt, ViewTurn } from './StudioCamera';
-import StudioScene, { type PlacementInfo } from './StudioScene';
+import StudioScene, { type PlacementInfo, type TouchPending } from './StudioScene';
 import Toolbar from './Toolbar';
 
 const SHORTCUTS: [string, string][] = [
@@ -55,6 +55,11 @@ export default function StudioApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [viewTurn, setViewTurn] = useState<ViewTurn>({ id: 0, dir: 1 });
   const [viewTilt, setViewTilt] = useState<ViewTilt>({ id: 0, dir: 1 });
+  // Touch aim-and-confirm: the scene reports what's pending; these epochs cancel or commit it.
+  const [touchPending, setTouchPending] = useState<TouchPending | null>(null);
+  const [aimEpoch, setAimEpoch] = useState(0);
+  const [commitEpoch, setCommitEpoch] = useState(0);
+  const [usingTouch, setUsingTouch] = useState(false);
   const [placement, setPlacement] = useState<PlacementInfo | null>(null);
 
   const { project, bins, rotation } = state;
@@ -173,6 +178,7 @@ export default function StudioApp() {
   return (
     <div
       className="relative h-[calc(100dvh-4rem)] min-h-[520px]"
+      onPointerDown={(e) => setUsingTouch(e.pointerType === 'touch')}
       onDragOver={handleDragOver}
       onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)}
       onDrop={handleDrop}
@@ -187,6 +193,9 @@ export default function StudioApp() {
           viewMode={viewMode}
           viewTurn={viewTurn}
           viewTilt={viewTilt}
+          aimEpoch={aimEpoch}
+          commitEpoch={commitEpoch}
+          onTouchPending={setTouchPending}
           sound={sound}
         />
       </div>
@@ -282,6 +291,16 @@ export default function StudioApp() {
           </div>
         </div>
 
+        {usingTouch && (
+          <TouchConfirmBar
+            pending={touchPending}
+            tool={state.tool}
+            onConfirm={() => setCommitEpoch((n) => n + 1)}
+            onRotate={() => dispatch({ type: 'rotate' })}
+            onCancel={() => setAimEpoch((n) => n + 1)}
+          />
+        )}
+
         <div className="pointer-events-auto flex w-full justify-center">
           <BinsHud state={state} dispatch={dispatch} onOpenDrawer={() => setDrawerTab('bins')} onOpenFigures={() => setDrawerTab('figures')} />
         </div>
@@ -364,6 +383,81 @@ function ViewControls({
       <button type="button" aria-label="Reset view" title="Reset view" onClick={onReset} className={viewBtn}>
         <Focus className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+/**
+ * Touch-only confirm bar. Fingers aim (or select) first; nothing changes until
+ * the primary button is pressed, so imprecise taps never place or erase by accident.
+ */
+function TouchConfirmBar({
+  pending,
+  tool,
+  onConfirm,
+  onRotate,
+  onCancel,
+}: {
+  pending: TouchPending | null;
+  tool: string;
+  onConfirm: () => void;
+  onRotate: () => void;
+  onCancel: () => void;
+}) {
+  if (!pending) {
+    const hint =
+      tool === 'erase'
+        ? 'Tap a brick to select it for erasing'
+        : tool === 'paint'
+          ? 'Tap a brick to select it for painting'
+          : 'Drag or tap on the plate to aim, then press Place';
+    return (
+      <p className="pointer-events-none flex items-center gap-2 border border-ink/15 bg-white/95 px-3 py-2 text-xs text-ink-soft shadow-sm backdrop-blur">
+        <Hand className="h-4 w-4 shrink-0 text-cobalt" /> {hint}
+      </p>
+    );
+  }
+
+  const primary = {
+    place: { label: 'Place', icon: Check, cls: 'bg-cobalt hover:bg-blue-700' },
+    erase: { label: 'Erase', icon: Eraser, cls: 'bg-signal-red hover:bg-red-600' },
+    paint: { label: 'Paint', icon: PaintBucket, cls: 'bg-cobalt hover:bg-blue-700' },
+  }[pending.kind];
+  const Icon = primary.icon;
+
+  return (
+    <div className="pointer-events-auto flex w-full max-w-md flex-col items-center gap-1.5" role="group" aria-label="Confirm action">
+      {!pending.valid && pending.reason && (
+        <p className="border border-signal-red/30 bg-white/95 px-2.5 py-1 text-[11px] font-medium text-red-700 shadow-sm">{pending.reason}</p>
+      )}
+      <div className="flex w-full items-stretch gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={!pending.valid}
+          className={`flex h-12 flex-1 items-center justify-center gap-2 text-base font-semibold text-white shadow-lg transition-colors disabled:cursor-not-allowed disabled:bg-ink/40 ${primary.cls}`}
+        >
+          <Icon className="h-5 w-5" /> {primary.label}
+        </button>
+        {pending.kind === 'place' && (
+          <button
+            type="button"
+            onClick={onRotate}
+            aria-label="Rotate part"
+            className="flex h-12 w-12 items-center justify-center border border-ink/15 bg-white/95 text-ink shadow-lg backdrop-blur hover:bg-slate-100"
+          >
+            <RotateCw className="h-5 w-5" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cancel"
+          className="flex h-12 w-12 items-center justify-center border border-ink/15 bg-white/95 text-ink shadow-lg backdrop-blur hover:bg-slate-100"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }

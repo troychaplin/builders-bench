@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState, type Dispatch } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch } from 'react';
 import { Canvas, type ThreeEvent } from '@react-three/fiber';
 import { Vector3, type Object3D } from 'three';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BASEPLATE_SIZE, getBaseplateColor, UNIT_H } from '@/lib/studio/constants';
 import { buildOccupancy, isSupportingOthers, resolvePlacement } from '@/lib/studio/occupancy';
+import { rotatedSize } from '@/lib/studio/footprint';
 import { activeSelection, type StudioAction, type StudioState } from '@/lib/studio/reducer';
 import { newInstanceId } from '@/lib/studio/share';
 import { playBlocked, playRemove, playSnap } from '@/lib/studio/sound';
@@ -17,6 +18,13 @@ import type { BrickPart, PlacedFigure } from '@/types/brick';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
 import StudioCamera, { type ViewMode, type ViewTilt, type ViewTurn } from './StudioCamera';
+
+/** A touch action waiting for confirmation from the studio's Place / Erase / Paint bar. */
+export interface TouchPending {
+  kind: 'place' | 'erase' | 'paint';
+  valid: boolean;
+  reason?: string;
+}
 
 export interface PlacementInfo {
   x: number;
@@ -36,6 +44,11 @@ interface SceneProps {
   viewTurn: ViewTurn;
   viewTilt: ViewTilt;
   sound: boolean;
+  /** Bump to drop the current touch aim / selection (Cancel). */
+  aimEpoch: number;
+  /** Bump to commit the pending touch action (Place / Erase / Paint button). */
+  commitEpoch: number;
+  onTouchPending?: (pending: TouchPending | null) => void;
 }
 
 const SIZE = BASEPLATE_SIZE;
@@ -78,11 +91,29 @@ function pieceId(obj: Object3D | null): string | undefined {
   return undefined;
 }
 
-function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: SceneProps) {
+/*
+ * Input model
+ * - Mouse: hover aims, click commits (place, erase, paint) immediately.
+ * - Touch: drag or tap aims (place) or selects (erase/paint). Nothing changes
+ *   until it is confirmed: tap the preview/selection again, or use the
+ *   studio's confirm bar (commitEpoch). The aim stays put after the finger
+ *   lifts, and after placing, so repeated confirms stack bricks.
+ */
+function Workspace({
+  state,
+  dispatch,
+  onNotice,
+  onPlacementChange,
+  sound,
+  aimEpoch,
+  commitEpoch,
+  onTouchPending,
+}: SceneProps) {
   const { project, rotation, tool } = state;
   const { partId, colorId } = activeSelection(state);
   const size = SIZE;
   const placingFigure = tool === 'figure' ? state.placingFigure : null;
+  const placing = tool === 'place' || !!placingFigure;
   const part: BrickPart = placingFigure ? FIGURE_PART : getPart(partId)!;
   const color = getColor(colorId)!;
   const figures = useMemo(() => project.figures ?? [], [project.figures]);
@@ -91,20 +122,40 @@ function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: Scen
   const byId = useMemo(() => new Map(project.bricks.map((b) => [b.instanceId, b])), [project.bricks]);
   const figureById = useMemo(() => new Map(figures.map((f) => [f.instanceId, f])), [figures]);
 
-  const [anchor, setAnchor] = useState<{ x: number; z: number } | null>(null);
+  // Whether the latest input was a finger. The ref is read by handlers; the state drives rendering.
+  const touchRef = useRef(false);
+  const [touch, setTouch] = useState(false);
+
+  // Aim and selection remember the epoch they were made in; Cancel bumps the epoch to drop them.
+  const [aim, setAim] = useState<{ x: number; z: number; epoch: number } | null>(null);
+  const [selection, setSelection] = useState<{ id: string; epoch: number } | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
+  const anchor = aim && aim.epoch === aimEpoch ? aim : null;
+  const selectedId =
+    selection && selection.epoch === aimEpoch && (byId.has(selection.id) || figureById.has(selection.id))
+      ? selection.id
+      : null;
+
   const placement = useMemo(
-    () =>
-      anchor && (tool === 'place' || placingFigure)
-        ? resolvePlacement(occ, part, rotation, anchor.x, anchor.z, size)
-        : null,
-    [anchor, tool, placingFigure, occ, part, rotation, size],
+    () => (anchor && placing ? resolvePlacement(occ, part, rotation, anchor.x, anchor.z, size) : null),
+    [anchor, placing, occ, part, rotation, size],
   );
 
   useEffect(() => {
     onPlacementChange?.(placement ? { x: placement.x, y: placement.y, z: placement.z, valid: placement.valid } : null);
   }, [placement, onPlacementChange]);
+
+  const pending = useMemo<TouchPending | null>(() => {
+    if (!touch) return null;
+    if (placing) return placement ? { kind: 'place', valid: placement.valid, reason: placement.reason } : null;
+    if ((tool === 'erase' || tool === 'paint') && selectedId) return { kind: tool, valid: true };
+    return null;
+  }, [touch, placing, placement, tool, selectedId]);
+
+  useEffect(() => {
+    onTouchPending?.(pending);
+  }, [pending, onTouchPending]);
 
   /** Stud cell the pointer is aiming at, nudged off the hit face. */
   function cellFromEvent(e: ThreeEvent<PointerEvent | MouseEvent>) {
@@ -127,65 +178,39 @@ function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: Scen
     return { x, z };
   }
 
-  function handleMove(e: ThreeEvent<PointerEvent>) {
-    e.stopPropagation();
-    const id = pieceId(e.object) ?? null;
-    setHoverId((prev) => (prev === id ? prev : id));
-    const cell = cellFromEvent(e);
-    setAnchor((prev) => (prev && cell && prev.x === cell.x && prev.z === cell.z ? prev : cell));
-  }
-
-  function handleOut() {
-    setAnchor(null);
-    setHoverId(null);
-  }
-
-  function handleClick(e: ThreeEvent<MouseEvent>) {
-    e.stopPropagation();
-    if (e.delta > 6) return; // that was an orbit drag
-
-    const id = pieceId(e.object);
-
+  /** Place the active part (or figure) at a cell, with the usual rules and feedback. */
+  function placeAt(cell: { x: number; z: number }) {
+    const p = resolvePlacement(occ, part, rotation, cell.x, cell.z, size);
+    if (!p) return;
+    if (!p.valid) {
+      if (sound) playBlocked();
+      onNotice(p.reason ?? "Can't place there.");
+      return;
+    }
+    if (sound) playSnap();
     if (placingFigure) {
-      const cell = cellFromEvent(e);
-      const p = cell && resolvePlacement(occ, FIGURE_PART, rotation, cell.x, cell.z, size);
-      if (!p) return;
-      if (!p.valid) {
-        if (sound) playBlocked();
-        onNotice(p.reason ?? "Can't place a figure there.");
-        return;
-      }
-      if (sound) playSnap();
       dispatch({
         type: 'placeFigure',
         figure: { instanceId: newInstanceId(), figure: placingFigure, x: p.x, y: p.y, z: p.z, rotation },
       });
-      return;
-    }
-
-    if (tool === 'place') {
-      const cell = cellFromEvent(e);
-      const p = cell && resolvePlacement(occ, part, rotation, cell.x, cell.z, size);
-      if (!p) return;
-      if (!p.valid) {
-        if (sound) playBlocked();
-        onNotice(p.reason ?? "Can't place there.");
-        return;
-      }
-      if (sound) playSnap();
+    } else {
       dispatch({
         type: 'place',
         brick: { instanceId: newInstanceId(), partId, colorId, x: p.x, y: p.y, z: p.z, rotation },
       });
-      return;
     }
+  }
 
-    if (!id) return;
-
+  /** Erase or paint one piece, depending on the tool. */
+  function actOn(id: string) {
     const fig = figureById.get(id);
     if (fig) {
       if (tool !== 'erase') return;
-      if (isSupportingOthers(occ, FIGURE_PART, fig, id)) return;
+      if (isSupportingOthers(occ, FIGURE_PART, fig, id)) {
+        if (sound) playBlocked();
+        onNotice('Remove the bricks stacked on top first.');
+        return;
+      }
       if (sound) playRemove();
       dispatch({ type: 'remove', instanceId: id });
       setHoverId(null);
@@ -193,9 +218,8 @@ function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: Scen
     }
 
     const target = byId.get(id);
-    if (!target) return;
-    const targetPart = getPart(target.partId);
-    if (!targetPart) return;
+    const targetPart = target && getPart(target.partId);
+    if (!target || !targetPart) return;
 
     if (tool === 'erase') {
       if (isSupportingOthers(occ, targetPart, target, id)) {
@@ -212,11 +236,89 @@ function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: Scen
     }
   }
 
+  /** Whether a cell falls inside the current preview's footprint. */
+  function insidePreview(cell: { x: number; z: number }) {
+    if (!placement) return false;
+    const { w, d } = rotatedSize(part, rotation);
+    return cell.x >= placement.x && cell.x < placement.x + w && cell.z >= placement.z && cell.z < placement.z + d;
+  }
+
+  // The confirm bar commits through commitEpoch; keep the latest commit logic in a ref.
+  const commitRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    commitRef.current = () => {
+      if (placing && anchor) placeAt(anchor);
+      else if ((tool === 'erase' || tool === 'paint') && selectedId) actOn(selectedId);
+    };
+  });
+  const lastCommit = useRef(commitEpoch);
+  useEffect(() => {
+    if (commitEpoch === lastCommit.current) return;
+    lastCommit.current = commitEpoch;
+    commitRef.current();
+  }, [commitEpoch]);
+
+  function handlePointerDown(e: ThreeEvent<PointerEvent>) {
+    const isTouch = (e.nativeEvent as PointerEvent).pointerType === 'touch';
+    touchRef.current = isTouch;
+    setTouch((prev) => (prev === isTouch ? prev : isTouch));
+  }
+
+  function handleMove(e: ThreeEvent<PointerEvent>) {
+    e.stopPropagation();
+    const isTouch = touchRef.current || (e.nativeEvent as PointerEvent).pointerType === 'touch';
+    if (isTouch) {
+      // Fingers only aim while placing; erase/paint selection happens on tap.
+      if (!placing) return;
+      const cell = cellFromEvent(e);
+      if (cell) setAim((prev) => (prev && prev.epoch === aimEpoch && prev.x === cell.x && prev.z === cell.z ? prev : { ...cell, epoch: aimEpoch }));
+      return;
+    }
+    const id = pieceId(e.object) ?? null;
+    setHoverId((prev) => (prev === id ? prev : id));
+    const cell = cellFromEvent(e);
+    setAim((prev) => {
+      if (!cell) return null;
+      return prev && prev.epoch === aimEpoch && prev.x === cell.x && prev.z === cell.z ? prev : { ...cell, epoch: aimEpoch };
+    });
+  }
+
+  function handleOut() {
+    // A lifted finger leaves the aim in place; a mouse leaving the canvas clears it.
+    if (touchRef.current) return;
+    setAim(null);
+    setHoverId(null);
+  }
+
+  function handleClick(e: ThreeEvent<MouseEvent>) {
+    e.stopPropagation();
+    if (e.delta > 6) return; // that was a drag (orbit, or aiming with a finger)
+    const isTouch = touchRef.current;
+
+    if (placing) {
+      const cell = cellFromEvent(e);
+      if (!cell) return;
+      if (!isTouch) return placeAt(cell);
+      // Tap the preview to place it; tap anywhere else to move the aim there.
+      if (anchor && insidePreview(cell)) placeAt(anchor);
+      else setAim({ ...cell, epoch: aimEpoch });
+      return;
+    }
+
+    const id = pieceId(e.object);
+    if (!id) return;
+    if (!isTouch) return actOn(id);
+    // Tap once to select, tap the selected piece again to erase/paint it.
+    if (selectedId === id) actOn(id);
+    else setSelection({ id, epoch: aimEpoch });
+  }
+
   const highlightColor = tool === 'erase' ? '#ef4444' : tool === 'paint' ? '#2563eb' : null;
+  const highlightId = touch ? selectedId : hoverId;
 
   return (
     <>
-      <group onPointerMove={handleMove} onPointerOut={handleOut} onClick={handleClick}>
+      <group onPointerDown={handlePointerDown} onPointerMove={handleMove} onPointerOut={handleOut} onClick={handleClick}>
         <Baseplate size={size} color={getBaseplateColor(project.baseplateColor).hex} />
         {project.bricks.map((b) => {
           const bp = getPart(b.partId);
@@ -229,12 +331,12 @@ function Workspace({ state, dispatch, onNotice, onPlacementChange, sound }: Scen
               part={bp}
               pose={b}
               material={brickMaterial(bc)}
-              highlight={hoverId === b.instanceId ? highlightColor : null}
+              highlight={highlightId === b.instanceId ? highlightColor : null}
             />
           );
         })}
         {figures.map((f) => (
-          <PlacedFigureMesh key={f.instanceId} placed={f} highlight={hoverId === f.instanceId && tool === 'erase'} />
+          <PlacedFigureMesh key={f.instanceId} placed={f} highlight={highlightId === f.instanceId && tool === 'erase'} />
         ))}
       </group>
 
