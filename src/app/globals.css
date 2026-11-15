@@ -6,8 +6,8 @@
   --ink: #0f172a;
   --ink-soft: #475569;
   --ink-faint: #94a3b8;
-  --grid-minor: rgba(148, 163, 184, 0.16);
-  --grid-major: rgba(148, 163, 184, 0.32);
+  --grid-minor: rgba(148, 163, 184, 0.096);
+  --grid-major: rgba(148, 163, 184, 0.192);
 
   /* Blueprint accents */
   --cobalt: #2563eb;
