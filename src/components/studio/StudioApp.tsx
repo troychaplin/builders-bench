@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, RotateCcwSquare, RotateCw, RotateCwSquare, Square, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Box, Check, ChevronsDown, ChevronsUp, Eraser, FileUp, Focus, Hand, Keyboard, PaintBucket, RotateCcwSquare, RotateCw, RotateCwSquare, Square, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BIN_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
@@ -10,7 +10,7 @@ import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartr
 import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
 import BinsHud from './BinsHud';
 import PartsDrawer, { type DrawerTab } from './PartsDrawer';
-import type { ViewMode, ViewTilt, ViewTurn } from './StudioCamera';
+import type { ViewMode, ViewPan, ViewTilt, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo, type TouchPending } from './StudioScene';
 import Toolbar from './Toolbar';
 
@@ -18,6 +18,7 @@ const SHORTCUTS: [string, string][] = [
   ['Left-click', 'Place / erase / paint'],
   ['Right-drag', 'Orbit (3D) / pan (2D)'],
   ['Middle-drag', 'Pan'],
+  ['Arrow keys', 'Pan view'],
   ['Scroll', 'Zoom'],
   ['V', 'Toggle 3D / 2D view'],
   ['Q / E', 'Rotate baseplate left / right'],
@@ -55,6 +56,8 @@ export default function StudioApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [viewTurn, setViewTurn] = useState<ViewTurn>({ id: 0, dir: 1 });
   const [viewTilt, setViewTilt] = useState<ViewTilt>({ id: 0, dir: 1 });
+  const [viewPan, setViewPan] = useState<ViewPan>({ id: 0, dx: 0, dy: 0 });
+  const panView = useCallback((dx: ViewPan['dx'], dy: ViewPan['dy']) => setViewPan((p) => ({ id: p.id + 1, dx, dy })), []);
   // Touch aim-and-confirm: the scene reports what's pending; these epochs cancel or commit it.
   const [touchPending, setTouchPending] = useState<TouchPending | null>(null);
   const [aimEpoch, setAimEpoch] = useState(0);
@@ -118,13 +121,19 @@ export default function StudioApp() {
         else if (k === 'e') setViewTurn((t) => ({ id: t.id + 1, dir: 1 }));
         else if (k === 'w') setViewTilt((t) => ({ id: t.id + 1, dir: 1 }));
         else if (k === 's') setViewTilt((t) => ({ id: t.id + 1, dir: -1 }));
-        else if (k === 'escape') dispatch({ type: 'setTool', tool: 'place' });
+        else if (k.startsWith('arrow')) {
+          e.preventDefault();
+          if (k === 'arrowleft') panView(-1, 0);
+          else if (k === 'arrowright') panView(1, 0);
+          else if (k === 'arrowup') panView(0, 1);
+          else if (k === 'arrowdown') panView(0, -1);
+        } else if (k === 'escape') dispatch({ type: 'setTool', tool: 'place' });
         else if (k === '?') setShowKeys((v) => !v);
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [drawerOpen]);
+  }, [drawerOpen, panView]);
 
   const notify = useCallback((message: string) => setNotice(message), []);
   const closeDrawer = useCallback(() => setDrawerTab(null), []);
@@ -193,6 +202,7 @@ export default function StudioApp() {
           viewMode={viewMode}
           viewTurn={viewTurn}
           viewTilt={viewTilt}
+          viewPan={viewPan}
           aimEpoch={aimEpoch}
           commitEpoch={commitEpoch}
           onTouchPending={setTouchPending}
@@ -256,6 +266,7 @@ export default function StudioApp() {
               onMode={setViewMode}
               onTurn={(dir) => setViewTurn((t) => ({ id: t.id + 1, dir }))}
               onTilt={(dir) => setViewTilt((t) => ({ id: t.id + 1, dir }))}
+              onPan={panView}
               onReset={() => setViewNonce((n) => n + 1)}
             />
             {showKeys && (
@@ -329,12 +340,14 @@ function ViewControls({
   onMode,
   onTurn,
   onTilt,
+  onPan,
   onReset,
 }: {
   mode: ViewMode;
   onMode: (m: ViewMode) => void;
   onTurn: (dir: 1 | -1) => void;
   onTilt: (dir: 1 | -1) => void;
+  onPan: (dx: ViewPan['dx'], dy: ViewPan['dy']) => void;
   onReset: () => void;
 }) {
   return (
@@ -380,6 +393,23 @@ function ViewControls({
           </button>
         </>
       )}
+      {/* Fingers pan with two-finger drags; the buttons are for mouse and trackpad. */}
+      <span className="my-2 hidden w-px bg-ink/15 md:block" aria-hidden="true" />
+      <div className="hidden md:flex" role="group" aria-label="Pan view">
+        {(
+          [
+            { label: 'Pan left', icon: ArrowLeft, dx: -1, dy: 0 },
+            { label: 'Pan up', icon: ArrowUp, dx: 0, dy: 1 },
+            { label: 'Pan down', icon: ArrowDown, dx: 0, dy: -1 },
+            { label: 'Pan right', icon: ArrowRight, dx: 1, dy: 0 },
+          ] as const
+        ).map(({ label, icon: Icon, dx, dy }) => (
+          <button key={label} type="button" aria-label={label} title={`${label} (arrow keys)`} onClick={() => onPan(dx, dy)} className={viewBtn}>
+            <Icon className="h-4 w-4" />
+          </button>
+        ))}
+      </div>
+      <span className="my-2 hidden w-px bg-ink/15 md:block" aria-hidden="true" />
       <button type="button" aria-label="Reset view" title="Reset view" onClick={onReset} className={viewBtn}>
         <Focus className="h-4 w-4" />
       </button>

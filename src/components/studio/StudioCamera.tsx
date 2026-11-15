@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, OrthographicCamera } from '@react-three/drei';
-import { MOUSE, TOUCH, type Vector3 } from 'three';
+import { MOUSE, TOUCH, Vector3 } from 'three';
 
 export type ViewMode = '3d' | '2d';
 
@@ -15,6 +15,13 @@ export interface ViewTurn {
 
 /** A request to tilt the 3D view one step; bump `id` to trigger. +1 tilts up (more overhead). */
 export type ViewTilt = ViewTurn;
+
+/** A request to slide the view one step across the plate; bump `id` to trigger. dx: +1 right, dy: +1 up (on screen). */
+export interface ViewPan {
+  id: number;
+  dx: -1 | 0 | 1;
+  dy: -1 | 0 | 1;
+}
 
 interface Controls {
   target: Vector3;
@@ -40,6 +47,7 @@ const TURN_STEP = Math.PI / 2;
 const TILT_STEP = Math.PI / 12; // 15°
 const MAX_POLAR_3D = Math.PI / 2.08; // just above the plate
 const MIN_TILT_POLAR = Math.PI / 12; // 15° from vertical; 2D view covers straight overhead
+const PAN_STEP = 0.125; // fraction of the plate per step
 
 /** Orthographic zoom that fits the whole baseplate, leaving room for the toolbar and BuildBins. */
 function useFitZoom(size: number) {
@@ -53,12 +61,14 @@ export default function StudioCamera({
   resetNonce,
   turn,
   tilt,
+  pan,
 }: {
   size: number;
   mode: ViewMode;
   resetNonce: number;
   turn: ViewTurn;
   tilt: ViewTilt;
+  pan: ViewPan;
 }) {
   const fitZoom = useFitZoom(size);
 
@@ -97,6 +107,7 @@ export default function StudioCamera({
       )}
       <Rig size={size} mode={mode} resetNonce={resetNonce} />
       <AngleAnimator request={turn} axis="azimuth" step={TURN_STEP} />
+      <PanAnimator request={pan} size={size} resetNonce={resetNonce} />
       {mode === '3d' && (
         <AngleAnimator request={tilt} axis="polar" step={-TILT_STEP} min={MIN_TILT_POLAR} max={MAX_POLAR_3D} />
       )}
@@ -166,6 +177,66 @@ function AngleAnimator({
     const value = a.from + (a.to - a.from) * (1 - (1 - t) ** 3);
     if (axis === 'azimuth') controls.setAzimuthalAngle(value);
     else controls.setPolarAngle(value);
+    controls.update();
+    if (t >= 1) anim.current = null;
+  });
+
+  return null;
+}
+
+/**
+ * Slides the camera and its orbit target together, one step in the direction
+ * that reads as left/right/up/down on screen. The target stays over the plate.
+ */
+function PanAnimator({ request, size, resetNonce }: { request: ViewPan; size: number; resetNonce: number }) {
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls) as unknown as Controls | null;
+  const anim = useRef<{ delta: Vector3; applied: number; start: number } | null>(null);
+  const lastId = useRef(request.id);
+
+  // A reset puts the camera back in place; drop any slide in progress.
+  useEffect(() => {
+    anim.current = null;
+  }, [resetNonce, size]);
+
+  useEffect(() => {
+    if (!controls || request.id === lastId.current) return;
+    lastId.current = request.id;
+
+    // Screen axes flattened onto the plate. Camera-up and camera-forward both point
+    // "up the screen" once flattened; summing them stays usable from overhead to edge-on.
+    camera.updateMatrixWorld();
+    const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0).setY(0).normalize();
+    const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1).setY(0);
+    const forward = new Vector3().setFromMatrixColumn(camera.matrixWorld, 2).negate().setY(0);
+    up.add(forward).normalize();
+
+    const step = size * PAN_STEP;
+    const delta = right.multiplyScalar(request.dx * step).add(up.multiplyScalar(request.dy * step));
+
+    // Carry over whatever the previous slide had left to go.
+    const a = anim.current;
+    if (a) delta.add(a.delta.clone().multiplyScalar(1 - a.applied));
+
+    const limit = size / 2;
+    const goal = controls.target.clone().add(delta);
+    goal.x = Math.min(limit, Math.max(-limit, goal.x));
+    goal.z = Math.min(limit, Math.max(-limit, goal.z));
+    goal.y = controls.target.y;
+    const clamped = goal.sub(controls.target);
+    if (clamped.lengthSq() < 1e-6) return;
+    anim.current = { delta: clamped, applied: 0, start: performance.now() };
+  }, [request, camera, controls, size]);
+
+  useFrame(() => {
+    const a = anim.current;
+    if (!a || !controls) return;
+    const t = Math.min((performance.now() - a.start) / TURN_MS, 1);
+    const eased = 1 - (1 - t) ** 3;
+    const step = a.delta.clone().multiplyScalar(eased - a.applied);
+    a.applied = eased;
+    camera.position.add(step);
+    controls.target.add(step);
     controls.update();
     if (t >= 1) anim.current = null;
   });

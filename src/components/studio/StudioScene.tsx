@@ -17,7 +17,7 @@ import { FIGURE_PART } from '@/lib/studio/figures';
 import type { BrickPart, PlacedFigure } from '@/types/brick';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
-import StudioCamera, { type ViewMode, type ViewTilt, type ViewTurn } from './StudioCamera';
+import StudioCamera, { type ViewMode, type ViewPan, type ViewTilt, type ViewTurn } from './StudioCamera';
 
 /** A touch action waiting for confirmation from the studio's Place / Erase / Paint bar. */
 export interface TouchPending {
@@ -43,6 +43,7 @@ interface SceneProps {
   viewMode: ViewMode;
   viewTurn: ViewTurn;
   viewTilt: ViewTilt;
+  viewPan: ViewPan;
   sound: boolean;
   /** Bump to drop the current touch aim / selection (Cancel). */
   aimEpoch: number;
@@ -73,6 +74,7 @@ export default function StudioScene(props: SceneProps) {
         resetNonce={props.viewNonce}
         turn={props.viewTurn}
         tilt={props.viewTilt}
+        pan={props.viewPan}
       />
     </Canvas>
   );
