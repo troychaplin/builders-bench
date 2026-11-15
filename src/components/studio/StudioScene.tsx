@@ -16,7 +16,7 @@ import { FIGURE_PART } from '@/lib/studio/figures';
 import type { BrickPart, PlacedFigure } from '@/types/brick';
 import Baseplate from './Baseplate';
 import BrickMesh from './BrickMesh';
-import StudioCamera, { type ViewMode, type ViewTurn } from './StudioCamera';
+import StudioCamera, { type ViewMode, type ViewTilt, type ViewTurn } from './StudioCamera';
 
 export interface PlacementInfo {
   x: number;
@@ -34,6 +34,7 @@ interface SceneProps {
   viewNonce: number;
   viewMode: ViewMode;
   viewTurn: ViewTurn;
+  viewTilt: ViewTilt;
   sound: boolean;
 }
 
@@ -55,7 +56,13 @@ export default function StudioScene(props: SceneProps) {
         <Workspace {...props} />
       </group>
 
-      <StudioCamera size={size} mode={props.viewMode} resetNonce={props.viewNonce} turn={props.viewTurn} />
+      <StudioCamera
+        size={size}
+        mode={props.viewMode}
+        resetNonce={props.viewNonce}
+        turn={props.viewTurn}
+        tilt={props.viewTilt}
+      />
     </Canvas>
   );
 }

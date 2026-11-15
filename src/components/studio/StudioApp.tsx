@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useState, type DragEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Box, FileUp, Focus, Keyboard, RotateCcwSquare, RotateCwSquare, Square, X } from 'lucide-react';
+import { Box, ChevronsDown, ChevronsUp, FileUp, Focus, Keyboard, RotateCcwSquare, RotateCwSquare, Square, X } from 'lucide-react';
 import { getColor, getPart } from '@/data/brickCatalog';
 import { BIN_COUNT } from '@/lib/studio/constants';
 import { activeSelection, createInitialState, studioReducer } from '@/lib/studio/reducer';
@@ -10,7 +10,7 @@ import { CARTRIDGE_EXT, HASH_PREFIX, downloadCartridge, encodeProject, readCartr
 import { loadAutosave, loadBins, loadSoundEnabled, saveAutosave, saveBins, saveSoundEnabled } from '@/lib/studio/storage';
 import BinsHud from './BinsHud';
 import PartsDrawer, { type DrawerTab } from './PartsDrawer';
-import type { ViewMode, ViewTurn } from './StudioCamera';
+import type { ViewMode, ViewTilt, ViewTurn } from './StudioCamera';
 import StudioScene, { type PlacementInfo } from './StudioScene';
 import Toolbar from './Toolbar';
 
@@ -21,6 +21,7 @@ const SHORTCUTS: [string, string][] = [
   ['Scroll', 'Zoom'],
   ['V', 'Toggle 3D / 2D view'],
   ['Q / E', 'Rotate baseplate left / right'],
+  ['W / S', 'Tilt view up / down (3D)'],
   ['1 – 6', 'Pick a BuildBin'],
   ['R', 'Rotate 90° clockwise'],
   ['X', 'Toggle eraser'],
@@ -53,6 +54,7 @@ export default function StudioApp() {
   const [viewNonce, setViewNonce] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('3d');
   const [viewTurn, setViewTurn] = useState<ViewTurn>({ id: 0, dir: 1 });
+  const [viewTilt, setViewTilt] = useState<ViewTilt>({ id: 0, dir: 1 });
   const [placement, setPlacement] = useState<PlacementInfo | null>(null);
 
   const { project, bins, rotation } = state;
@@ -109,6 +111,8 @@ export default function StudioApp() {
         else if (k === 'v') setViewMode((m) => (m === '3d' ? '2d' : '3d'));
         else if (k === 'q') setViewTurn((t) => ({ id: t.id + 1, dir: -1 }));
         else if (k === 'e') setViewTurn((t) => ({ id: t.id + 1, dir: 1 }));
+        else if (k === 'w') setViewTilt((t) => ({ id: t.id + 1, dir: 1 }));
+        else if (k === 's') setViewTilt((t) => ({ id: t.id + 1, dir: -1 }));
         else if (k === 'escape') dispatch({ type: 'setTool', tool: 'place' });
         else if (k === '?') setShowKeys((v) => !v);
       }
@@ -182,6 +186,7 @@ export default function StudioApp() {
           viewNonce={viewNonce}
           viewMode={viewMode}
           viewTurn={viewTurn}
+          viewTilt={viewTilt}
           sound={sound}
         />
       </div>
@@ -212,7 +217,7 @@ export default function StudioApp() {
 
       {/* Bottom HUD: status, bins, shortcuts */}
       <div className="pointer-events-none absolute inset-x-3 bottom-3 flex flex-col items-center gap-2">
-        <div className="flex w-full max-w-3xl items-end justify-between gap-2">
+        <div className="flex w-full max-w-3xl flex-wrap items-end justify-between gap-2">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-ink/15 bg-white/90 px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] text-ink-soft backdrop-blur">
             <span>
               BRICKS <span className="text-ink">{project.bricks.length}</span>
@@ -236,11 +241,12 @@ export default function StudioApp() {
             )}
           </div>
 
-          <div className="pointer-events-auto relative flex items-end gap-2">
+          <div className="pointer-events-auto relative ml-auto flex items-end gap-2">
             <ViewControls
               mode={viewMode}
               onMode={setViewMode}
               onTurn={(dir) => setViewTurn((t) => ({ id: t.id + 1, dir }))}
+              onTilt={(dir) => setViewTilt((t) => ({ id: t.id + 1, dir }))}
               onReset={() => setViewNonce((n) => n + 1)}
             />
             {showKeys && (
@@ -303,11 +309,13 @@ function ViewControls({
   mode,
   onMode,
   onTurn,
+  onTilt,
   onReset,
 }: {
   mode: ViewMode;
   onMode: (m: ViewMode) => void;
   onTurn: (dir: 1 | -1) => void;
+  onTilt: (dir: 1 | -1) => void;
   onReset: () => void;
 }) {
   return (
@@ -332,7 +340,7 @@ function ViewControls({
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
-            {id.toUpperCase()}
+            <span className="hidden sm:inline">{id.toUpperCase()}</span>
           </button>
         ))}
       </div>
@@ -343,6 +351,16 @@ function ViewControls({
       <button type="button" aria-label="Rotate baseplate right" title="Rotate baseplate right (E)" onClick={() => onTurn(1)} className={viewBtn}>
         <RotateCwSquare className="h-4 w-4" />
       </button>
+      {mode === '3d' && (
+        <>
+          <button type="button" aria-label="Tilt view up" title="Tilt view up (W)" onClick={() => onTilt(1)} className={viewBtn}>
+            <ChevronsUp className="h-4 w-4" />
+          </button>
+          <button type="button" aria-label="Tilt view down" title="Tilt view down (S)" onClick={() => onTilt(-1)} className={viewBtn}>
+            <ChevronsDown className="h-4 w-4" />
+          </button>
+        </>
+      )}
       <button type="button" aria-label="Reset view" title="Reset view" onClick={onReset} className={viewBtn}>
         <Focus className="h-4 w-4" />
       </button>

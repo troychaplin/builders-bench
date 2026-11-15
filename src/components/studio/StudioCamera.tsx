@@ -13,11 +13,16 @@ export interface ViewTurn {
   dir: 1 | -1;
 }
 
+/** A request to tilt the 3D view one step; bump `id` to trigger. +1 tilts up (more overhead). */
+export type ViewTilt = ViewTurn;
+
 interface Controls {
   target: Vector3;
   update: () => void;
   getAzimuthalAngle: () => number;
   setAzimuthalAngle: (a: number) => void;
+  getPolarAngle: () => number;
+  setPolarAngle: (a: number) => void;
 }
 
 // 3D: left builds, right orbits, middle pans. One finger builds; two orbit and zoom.
@@ -31,6 +36,11 @@ const TOUCH_2D = { ONE: null, TWO: TOUCH.DOLLY_PAN } as unknown as { ONE: TOUCH;
 const TOP_DOWN_POLAR = 0.001;
 const TURN_MS = 380;
 
+const TURN_STEP = Math.PI / 2;
+const TILT_STEP = Math.PI / 12; // 15°
+const MAX_POLAR_3D = Math.PI / 2.08; // just above the plate
+const MIN_TILT_POLAR = Math.PI / 12; // 15° from vertical; 2D view covers straight overhead
+
 /** Orthographic zoom that fits the whole baseplate, leaving room for the toolbar and BuildBins. */
 function useFitZoom(size: number) {
   const viewport = useThree((s) => s.size);
@@ -42,11 +52,13 @@ export default function StudioCamera({
   mode,
   resetNonce,
   turn,
+  tilt,
 }: {
   size: number;
   mode: ViewMode;
   resetNonce: number;
   turn: ViewTurn;
+  tilt: ViewTilt;
 }) {
   const fitZoom = useFitZoom(size);
 
@@ -62,7 +74,7 @@ export default function StudioCamera({
           makeDefault
           enableDamping
           dampingFactor={0.12}
-          maxPolarAngle={Math.PI / 2.08}
+          maxPolarAngle={MAX_POLAR_3D}
           minDistance={4}
           maxDistance={size * 2.6}
           mouseButtons={MOUSE_3D}
@@ -84,7 +96,10 @@ export default function StudioCamera({
         />
       )}
       <Rig size={size} mode={mode} resetNonce={resetNonce} />
-      <Turner turn={turn} />
+      <AngleAnimator request={turn} axis="azimuth" step={TURN_STEP} />
+      {mode === '3d' && (
+        <AngleAnimator request={tilt} axis="polar" step={-TILT_STEP} min={MIN_TILT_POLAR} max={MAX_POLAR_3D} />
+      )}
     </>
   );
 }
@@ -111,23 +126,46 @@ function Rig({ size, mode, resetNonce }: { size: number; mode: ViewMode; resetNo
   return null;
 }
 
-/** Animates a 90° turn around the plate, starting from wherever the view currently is. */
-function Turner({ turn }: { turn: ViewTurn }) {
+/**
+ * Animates one step around the plate: `azimuth` turns it, `polar` tilts it.
+ * Each step starts from the current view (or the end of a step in progress)
+ * and is clamped to [min, max].
+ */
+function AngleAnimator({
+  request,
+  axis,
+  step,
+  min = -Infinity,
+  max = Infinity,
+}: {
+  request: ViewTurn;
+  axis: 'azimuth' | 'polar';
+  step: number;
+  min?: number;
+  max?: number;
+}) {
   const controls = useThree((s) => s.controls) as unknown as Controls | null;
   const anim = useRef<{ from: number; to: number; start: number } | null>(null);
+  const lastId = useRef(request.id);
 
   useEffect(() => {
-    if (!controls || turn.id === 0) return;
-    const from = anim.current?.to ?? controls.getAzimuthalAngle();
-    anim.current = { from, to: from + turn.dir * (Math.PI / 2), start: performance.now() };
-  }, [turn, controls]);
+    // Only react to new requests, not to remounts (e.g. switching back to 3D).
+    if (!controls || request.id === lastId.current) return;
+    lastId.current = request.id;
+    const current = axis === 'azimuth' ? controls.getAzimuthalAngle() : controls.getPolarAngle();
+    const from = anim.current?.to ?? current;
+    const to = Math.min(max, Math.max(min, from + request.dir * step));
+    if (Math.abs(to - from) < 1e-4) return;
+    anim.current = { from, to, start: performance.now() };
+  }, [request, controls, axis, step, min, max]);
 
   useFrame(() => {
     const a = anim.current;
     if (!a || !controls) return;
     const t = Math.min((performance.now() - a.start) / TURN_MS, 1);
-    const eased = 1 - (1 - t) ** 3;
-    controls.setAzimuthalAngle(a.from + (a.to - a.from) * eased);
+    const value = a.from + (a.to - a.from) * (1 - (1 - t) ** 3);
+    if (axis === 'azimuth') controls.setAzimuthalAngle(value);
+    else controls.setPolarAngle(value);
     controls.update();
     if (t >= 1) anim.current = null;
   });
