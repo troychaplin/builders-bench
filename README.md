@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Builder's Bench
 
-## Getting Started
+An interactive 3D brick-building workshop in the browser: a free-build studio, step-by-step guided kits, a block figure lab, and a searchable set encyclopedia. Everything runs client-side with no backend or account. Builds, figures and wish lists save to your browser and export as portable JSON files or share links.
 
-First, run the development server:
+Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and React Three Fiber.
+
+## Modules
+
+| Route | Module | What it does |
+| --- | --- | --- |
+| `/` | **Workbench Hub** | Blueprint-style landing page with an interactive isometric preview and links to every module. |
+| `/studio` | **BuildBin Studio** | Free-build on a 24×24 stud baseplate in 3D. |
+| `/kits` | **Guided Kits** | Assemble micro-kits step by step, or turn any studio build into a kit. |
+| `/figure-lab` | **Figure Lab** | Mix and match block figure parts, generate a Builder ID card, and place heroes in the studio. |
+| `/sets` | **Set Explorer** | Search, filter and compare brick sets, and keep a portable dream wish list. |
+
+### BuildBin Studio
+
+- Stud-snapping placement with a translucent preview that turns red where a piece can't go. The rules block overlapping, floating, and stacking on tiles, slopes or figures.
+- Eighteen procedurally modeled parts (bricks, plates, tiles, slopes, a round stud, a window, a wheel and axle) in 27 colors, including transparent and metallic finishes.
+- Six quick-access **BuildBins** and a color bar along the bottom, filled from a parts drawer with preset kits (Starter Mix, Space Cruiser Parts, Castle Masonry).
+- **My Figures** drawer for placing saved Figure Lab heroes onto the baseplate.
+- Eraser and paint tools, 90° clockwise rotation, 100-step undo/redo, four baseplate colors, and synthesized Web Audio snap sounds.
+- **Saving:** autosave to `localStorage`, `.brick.json` cartridge export and import (including drag-and-drop), and compressed `#build=` share links.
+
+### Guided Kits
+
+- Four original kits: Turbo Red Racer, Galaxy Starfighter, Pixel Block Monster and Medieval Watchtower (14–36 pieces).
+- Builds are sorted bottom-up and grouped into steps of up to three matching pieces. The current step glows as a pulsing hologram, and each step has a "parts needed" call-out.
+- Click the hologram or press Space to snap the step's pieces into place.
+- Finishing a kit triggers a camera spin and confetti and awards a **Master Builder Badge**.
+- **Play as Guided Kit** in the studio, or a `.brick.json` upload on `/kits`, turns any creation into instructions.
+
+### Figure Lab
+
+- Five part slots: headgear, expression, torso, legs and accessory, each with its own color (plus skin tone).
+- **Randomize Hero** spins slot-machine reels that settle one slot at a time.
+- Choose a name and faction (Space, Castle, City, Heroes), and generate a collectible **Builder ID card** that downloads as a PNG.
+- Save heroes to My Figures, or export and import them as `.figure.json` files.
+
+### Set Explorer
+
+- A built-in catalog of 76 iconic sets, so the explorer works with no setup.
+- Optionally searches the full Rebrickable catalog live when an API key is configured (see below).
+- Search by name or set number (e.g. `75192`), filter by theme, release-year range and piece count, and sort. Filters are kept in the URL, so filtered views can be shared.
+- Each set's detail view links to its official building instructions and its Rebrickable page.
+- Compare up to three sets side by side.
+- **Dream Set Wish List** with set and brick totals, plus `.json` export and import.
+
+## Getting started
+
+Requires Node.js 20.9 or later.
+
+```bash
+npm install
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Optional: live Rebrickable search
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The Set Explorer uses its built-in dataset by default. To search the full catalog, get a free API key from [rebrickable.com/api](https://rebrickable.com/api/) and add it to `.env.local`:
 
-## Learn More
+```bash
+cp .env.example .env.local
+```
 
-To learn more about Next.js, take a look at the following resources:
+```
+REBRICKABLE_API_KEY=your-key-here
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Restart the dev server. The results heading switches from **Featured collection** to **Live Rebrickable catalog**. The key is only used by the `/api/sets` route handler and never reaches the browser. If Rebrickable is unreachable, the explorer falls back to the built-in data and shows a notice.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server. |
+| `npm run build` | Production build. |
+| `npm run start` | Serve the production build. |
+| `npm run lint` | Run ESLint. |
+| `npx tsx scripts/validate-kits.ts` | Check that every starter kit can be assembled step by step under the studio's placement rules. |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Controls
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Studio**
+
+| Input | Action |
+| --- | --- |
+| Left-click | Place, erase or paint (depending on the tool) |
+| Right-drag / two-finger drag | Orbit the camera |
+| Middle-drag | Pan |
+| Scroll / pinch | Zoom |
+| `1`–`6` | Pick a BuildBin |
+| `R` | Rotate 90° clockwise |
+| `X` | Toggle eraser |
+| `P` | Toggle paint |
+| `F` | Open the My Figures drawer |
+| `Esc` | Back to building |
+| `⌘Z` / `⇧⌘Z` | Undo / redo |
+| `?` | Show the controls panel |
+
+**Guided Kits:** `Space`, `Enter` or `→` snaps the current step; `←` steps back.
+
+## Project structure
+
+```
+src/
+├── app/                  Routes: /, /studio, /kits, /figure-lab, /sets, /api/sets
+├── components/
+│   ├── studio/           3D scene, brick meshes, toolbar, BuildBins HUD, parts drawer
+│   ├── kits/             Kit player, hologram scene, thumbnails, badges, confetti
+│   ├── figures/          BlockFigureMesh, SVG FigureIcon, Figure Lab, ID card
+│   ├── sets/             Set Explorer, comparison and wish list modals, range slider
+│   └── three/            Shared scene lighting and camera rig
+├── data/                 Brick catalog, starter kits, figure parts, featured sets
+├── lib/
+│   ├── studio/           Placement rules, geometry, reducer, sharing and cartridges, sound
+│   ├── kits/             Step builder, kit validation, badges
+│   ├── figures/          Figure defaults, validation, saving, export
+│   └── sets/             Search and filtering, Rebrickable client, wish list
+└── types/                BuildProject, PlacedBrick, BlockFigure, BrickSet…
+docs/phases/              Implementation plans for each module
+scripts/                  Development checks
+```
+
+### Units and coordinates
+
+One stud = 1 world unit horizontally. Heights are measured in plate units: a plate is 1 unit (0.4 world units) and a standard brick is 3. A `PlacedBrick`'s `x`/`z` is the stud cell of its minimum corner after rotation, and `y` is its base height in plate units. Rotation is clockwise when viewed from above.
+
+### File formats
+
+- **`.brick.json`:** a full `BuildProject` (bricks, optional figures and baseplate color).
+- **`.figure.json`:** a single `BlockFigure`.
+- **`dream-set-wishlist.json`:** an exported wish list.
+- **`#build=` links:** an lz-string–compressed, compact encoding of a `BuildProject`.
+
+Every import is validated against the catalogs, and unknown parts, colors or out-of-bounds pieces are dropped.
+
+## Credits
+
+Set data and thumbnails in the Set Explorer are indexed via [Rebrickable](https://rebrickable.com). The built-in dataset comes from Rebrickable's public data export, and its part counts are Rebrickable's, which can differ slightly from the number printed on the box. Building-instruction links point to LEGO's official instructions service.
+
+## Disclaimer
+
+Builder's Bench is an independent, non-commercial fan project created for educational purposes. Not affiliated with, endorsed, or sponsored by The LEGO Group. LEGO® is a trademark of the LEGO Group of companies. All kits, figures and part designs in the studio, kits and Figure Lab are original to this project.
