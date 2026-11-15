@@ -1,12 +1,16 @@
-import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
+import { decompressFromEncodedURIComponent } from 'lz-string';
 import { getColor, getPart } from '@/data/brickCatalog';
 import type { BlockFigure, BrickRotation, BuildProject, PlacedBrick, PlacedFigure } from '@/types/brick';
 import { COLOR_KEYS, sanitizeFigure } from '@/lib/figures/figure';
 import { getBaseplateColor, MAX_HEIGHT_UNITS, normalizeBaseplateSize } from './constants';
 import { FIGURE_PART } from './figures';
 import { rotatedSize, ROTATIONS } from './footprint';
+import { decodeShareV2, encodeShareV2 } from './shareCodec';
 
-export const HASH_PREFIX = '#build=';
+/** Share links: `#b=` + compact binary (see shareCodec.ts). */
+export const HASH_PREFIX = '#b=';
+/** Older links: `#build=` + lz-string JSON. Still readable, no longer written. */
+const LEGACY_HASH_PREFIX = '#build=';
 
 export function newInstanceId(): string {
   return `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -82,7 +86,7 @@ export function sanitizeProject(raw: unknown): BuildProject | null {
   };
 }
 
-/* ---------- URL hash (compact tuples + lz-string) ---------- */
+/* ---------- Legacy URL hash (compact tuples + lz-string), read-only ---------- */
 
 /** [partId, colorId, x, y, z, rotation / 90] */
 type BrickTuple = [string, string, number, number, number, number];
@@ -101,11 +105,6 @@ interface SharePayload {
   f?: FigureTuple[];
 }
 
-function figureToTuple(p: PlacedFigure): FigureTuple {
-  const f = p.figure;
-  return [f.name, f.hatId, f.headId, f.torsoId, f.legsId, f.accessoryId, COLOR_KEYS.map((k) => f.colors[k]), f.faction ?? 'space', p.x, p.y, p.z, p.rotation / 90];
-}
-
 function tupleToFigure(t: unknown[]): unknown {
   const [name, hatId, headId, torsoId, legsId, accessoryId, colors, faction, x, y, z, r] = t;
   const figure: Partial<BlockFigure> = {
@@ -121,20 +120,12 @@ function tupleToFigure(t: unknown[]): unknown {
   return { figure, x, y, z, rotation: isInt(r) ? r * 90 : -1 };
 }
 
+/** Encode a project for a share link (without the hash prefix). */
 export function encodeProject(p: BuildProject): string {
-  const payload: SharePayload = {
-    v: 1,
-    t: p.title,
-    a: p.author,
-    c: getBaseplateColor(p.baseplateColor).id,
-    ...(p.baseplateSize !== 24 ? { s: p.baseplateSize } : {}),
-    b: p.bricks.map((b) => [b.partId, b.colorId, b.x, b.y, b.z, b.rotation / 90]),
-  };
-  if (p.figures?.length) payload.f = p.figures.map(figureToTuple);
-  return compressToEncodedURIComponent(JSON.stringify(payload));
+  return encodeShareV2(p);
 }
 
-export function decodeProject(encoded: string): BuildProject | null {
+function decodeLegacyProject(encoded: string): BuildProject | null {
   try {
     const json = decompressFromEncodedURIComponent(encoded);
     if (!json) return null;
@@ -159,9 +150,19 @@ export function shareUrl(p: BuildProject): string {
   return `${window.location.origin}${window.location.pathname}${HASH_PREFIX}${encodeProject(p)}`;
 }
 
+export function decodeProject(encoded: string): BuildProject | null {
+  try {
+    return sanitizeProject(decodeShareV2(encoded));
+  } catch {
+    return null;
+  }
+}
+
 export function readHashProject(): BuildProject | null {
   const hash = window.location.hash;
-  return hash.startsWith(HASH_PREFIX) ? decodeProject(hash.slice(HASH_PREFIX.length)) : null;
+  if (hash.startsWith(HASH_PREFIX)) return decodeProject(hash.slice(HASH_PREFIX.length));
+  if (hash.startsWith(LEGACY_HASH_PREFIX)) return decodeLegacyProject(hash.slice(LEGACY_HASH_PREFIX.length));
+  return null;
 }
 
 /* ---------- .brick.json cartridges ---------- */

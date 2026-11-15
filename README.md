@@ -26,7 +26,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 and Re
 - A **Figures** panel for placing saved Figure Lab heroes onto the baseplate.
 - Baseplate sizes from 16×16 to 64×64 studs (24×24 by default). Resizing keeps the build centred and can be undone; sizes too small for the build are disabled.
 - Eraser and paint tools, 90° clockwise rotation, 100-step undo/redo, twelve baseplate colours (including white), and synthesized Web Audio snap sounds.
-- **Saving:** autosave to `localStorage`, `.brick.json` cartridge export and import (including drag-and-drop), and compressed `#build=` share links.
+- **Saving:** autosave to `localStorage`, `.brick.json` cartridge export and import (including drag-and-drop), and compact `#b=` share links (older `#build=` links still open).
 
 ### Guided Kits
 
@@ -138,7 +138,7 @@ One stud = 1 world unit horizontally. Heights are measured in plate units: a pla
 - **`.brick.json`:** a full `BuildProject` (bricks, optional figures and baseplate color).
 - **`.figure.json`:** a single `BlockFigure`.
 - **`dream-set-wishlist.json`:** an exported wish list.
-- **`#build=` links:** an lz-string–compressed, compact encoding of a `BuildProject`.
+- **`#b=` links:** a bit-packed, base64url encoding of a `BuildProject` (see `src/lib/studio/shareCodec.ts`), about 4 characters per brick. Catalog lists are append-only because links store their indexes. Older lz-string `#build=` links are still read.
 
 Every import is validated against the catalogs, and unknown parts, colors or out-of-bounds pieces are dropped.
 
